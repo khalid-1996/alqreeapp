@@ -15,14 +15,31 @@
         android:orientation="horizontal">
 
         <TextView
-            android:id="@+id/daily_label"
-            android:layout_width="0dp"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="حديث اليوم"
+            android:text="ومضات اليوم"
             android:textColor="#3BA7FF"
             android:textSize="13sp"
             android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/daily_type"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/widget_chip"
+            android:paddingStart="8dp"
+            android:paddingTop="2dp"
+            android:paddingEnd="8dp"
+            android:paddingBottom="2dp"
+            android:text="دعاء"
+            android:textColor="#DDE3F7"
+            android:textSize="11sp" />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
 
         <TextView
             android:layout_width="wrap_content"
@@ -40,12 +57,12 @@
         android:layout_height="0dp"
         android:layout_weight="1"
         android:layout_marginTop="8dp"
-        android:autoSizeMaxTextSize="20sp"
+        android:autoSizeMaxTextSize="22sp"
         android:autoSizeMinTextSize="11sp"
         android:autoSizeStepGranularity="1sp"
         android:autoSizeTextType="uniform"
         android:gravity="center"
-        android:text="افتح التطبيق لتحميل حديث اليوم"
+        android:text="«ربنا آتنا في الدنيا حسنة، وفي الآخرة حسنة، وقنا عذاب النار»"
         android:textColor="#FFFFFF" />
 
     <TextView
@@ -53,6 +70,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:gravity="center"
+        android:text="متفق عليه"
         android:textColor="#A9B3D6"
         android:textSize="12sp" />
 </LinearLayout>

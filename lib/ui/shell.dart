@@ -1,13 +1,20 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:home_widget/home_widget.dart';
 
+import '../core/home_widgets.dart';
 import '../core/theme.dart';
+import '../state/actions.dart';
 import '../state/providers.dart';
 import 'screens/adhkar_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/more_screen.dart';
+import 'screens/player_screen.dart';
 import 'screens/radios_screen.dart';
 import 'screens/reciters_screen.dart';
+import 'screens/wamda_screen.dart';
 import 'widgets/mini_player.dart';
 
 final tabProvider = StateProvider<int>((ref) => 0);
@@ -19,17 +26,54 @@ class Shell extends ConsumerStatefulWidget {
   ConsumerState<Shell> createState() => _ShellState();
 }
 
-class _ShellState extends ConsumerState<Shell> {
+class _ShellState extends ConsumerState<Shell> with WidgetsBindingObserver {
+  StreamSubscription<Uri?>? _widgetClicks;
+
   @override
   void initState() {
     super.initState();
     final handler = ref.read(audioHandlerProvider);
-    handler.onProgress = (v) => ref.read(lastListeningProvider.notifier).save(v);
+    handler.onProgress = (v, force) => ref.read(lastListeningProvider.notifier).save(v, force: force);
+    WidgetsBinding.instance.addObserver(this);
+    // Taps on the home-screen widgets: alqaree://resume, alqaree://adhkar
+    HomeWidget.initiallyLaunchedFromHomeWidget().then(_openFromWidget);
+    _widgetClicks = HomeWidget.widgetClicked.listen(_openFromWidget);
     handler.errors.listen((_) {
       if (!mounted) return;
       final s = ref.read(stringsProvider);
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(s.playFailed)));
     });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _widgetClicks?.cancel();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      ref.read(adhkarCounterProvider.notifier).reload();
+      HomeWidgets.refreshAll();
+    }
+  }
+
+  Future<void> _openFromWidget(Uri? uri) async {
+    if (uri == null || !mounted) return;
+    switch (uri.host) {
+      case 'resume':
+        ref.read(tabProvider.notifier).state = 0;
+        if (await resumeLastListening(ref) && mounted) {
+          Navigator.of(context).push(PlayerScreen.route());
+        }
+      case 'adhkar':
+        ref.read(tabProvider.notifier).state = 3;
+      case 'wamda':
+        ref.read(tabProvider.notifier).state = 0;
+        Navigator.of(context).push(WamdaScreen.route(ref.read(wamdaOfDayProvider)));
+    }
   }
 
   @override

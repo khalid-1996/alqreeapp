@@ -1,7 +1,7 @@
 name: alqaree
 description: "القارئ — تلاوات وإذاعات القرآن الكريم، حديث ودعاء اليوم، والأذكار."
 publish_to: 'none'
-version: 1.0.1+2
+version: 1.0.2+3
 
 environment:
   sdk: ">=3.5.0 <4.0.0"
@@ -37,6 +37,9 @@ flutter:
   uses-material-design: true
   assets:
     - assets/icon/logo_white.png
+    - assets/icon/icon.png
+    - assets/data/wamdat.json
+    - assets/data/adhkar.json
 
 flutter_launcher_icons:
   android: true

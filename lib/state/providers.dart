@@ -86,11 +86,10 @@ final hadithOfDayProvider = FutureProvider<Hadith>((ref) async {
   final repo = ref.watch(repositoryProvider);
   final h = await repo.hadithOfDay(DateTime.now());
   await repo.rememberLastHadith(h);
-  HomeWidgets.updateDaily(hadith: h, dua: ref.read(duaOfDayProvider));
   return h;
 });
 
-final duaOfDayProvider = Provider<Dua>((ref) => LocalContent.duaFor(DateTime.now()));
+final wamdaOfDayProvider = Provider<Wamda>((ref) => LocalContent.wamdaFor(DateTime.now()));
 
 // ---------- Favorites ----------
 
@@ -165,10 +164,10 @@ class LastListeningNotifier extends StateNotifier<LastListening?> {
     }
   }
 
-  void save(LastListening v) {
+  void save(LastListening v, {bool force = false}) {
     _p.setString('lastListening', jsonEncode(v.toJson()));
     state = v;
-    HomeWidgets.updateListening(v);
+    HomeWidgets.updateListening(v, force: force);
   }
 }
 
@@ -176,15 +175,23 @@ final lastListeningProvider = StateNotifierProvider<LastListeningNotifier, LastL
   (ref) => LastListeningNotifier(ref.watch(prefsProvider)),
 );
 
-// ---------- Adhkar counters (per session) ----------
+// ---------- Adhkar counters (per day, shared with the adhkar widget) ----------
 
 class AdhkarCounter extends StateNotifier<Map<String, int>> {
-  AdhkarCounter() : super(const {});
+  AdhkarCounter() : super(const {}) {
+    reload();
+  }
+
+  /// Picks up counts made from the home-screen widget.
+  Future<void> reload() async {
+    state = await HomeWidgets.loadAdhkar();
+  }
 
   void tap(Dhikr d) {
     final used = state[d.id] ?? 0;
     if (used >= d.count) return;
     state = {...state, d.id: used + 1};
+    HomeWidgets.saveAdhkar(state);
   }
 
   void reset(List<Dhikr> list) {
@@ -193,6 +200,7 @@ class AdhkarCounter extends StateNotifier<Map<String, int>> {
       next.remove(d.id);
     }
     state = next;
+    HomeWidgets.saveAdhkar(state);
   }
 }
 

@@ -8,16 +8,39 @@
     android:orientation="vertical"
     android:padding="14dp">
 
-    <TextView
-        android:id="@+id/last_letter"
-        android:layout_width="40dp"
-        android:layout_height="40dp"
-        android:background="@drawable/widget_chip"
-        android:gravity="center"
-        android:text="ق"
-        android:textColor="#FFFFFF"
-        android:textSize="18sp"
-        android:textStyle="bold" />
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/last_letter"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="@drawable/widget_chip"
+            android:gravity="center"
+            android:text="ق"
+            android:textColor="#FFFFFF"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
+
+        <TextView
+            android:id="@+id/last_play"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:background="@drawable/widget_button"
+            android:gravity="center"
+            android:text="▶"
+            android:textColor="#000A3A"
+            android:textSize="14sp"
+            android:visibility="gone" />
+    </LinearLayout>
 
     <View
         android:layout_width="match_parent"
@@ -49,4 +72,13 @@
         android:text="اختر تلاوة لتظهر هنا"
         android:textColor="#A9B3D6"
         android:textSize="12sp" />
+
+    <TextView
+        android:id="@+id/last_position"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:maxLines="1"
+        android:textColor="#3BA7FF"
+        android:textSize="11sp"
+        android:visibility="gone" />
 </LinearLayout>

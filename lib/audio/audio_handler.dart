@@ -43,6 +43,9 @@ class LastListening {
 
 /// Streams only: nothing is ever saved to disk as an audio file.
 class AlqariAudioHandler extends BaseAudioHandler with SeekHandler {
+  /// App logo shown on the lock screen, notification, CarPlay/Android Auto and AirPlay.
+  static Uri? artUri;
+
   final AudioPlayer _player = AudioPlayer();
   final _rnd = Random();
 
@@ -57,7 +60,7 @@ class AlqariAudioHandler extends BaseAudioHandler with SeekHandler {
   final _errorCtrl = StreamController<String>.broadcast();
 
   /// Called whenever a surah starts or periodically while playing.
-  void Function(LastListening)? onProgress;
+  void Function(LastListening v, bool force)? onProgress;
 
   AlqariAudioHandler() {
     _player.playbackEventStream.map(_transform).pipe(playbackState);
@@ -68,6 +71,10 @@ class AlqariAudioHandler extends BaseAudioHandler with SeekHandler {
         .where((_) => !_isLive && _player.playing)
         .distinct((a, b) => a.inSeconds ~/ 5 == b.inSeconds ~/ 5)
         .listen((pos) => _report(pos));
+    // Save exactly where the user stopped.
+    _player.playingStream.listen((playing) {
+      if (!playing && !_isLive) _report(_player.position, force: true);
+    });
   }
 
   Stream<Duration> get position => _player.positionStream;
@@ -110,6 +117,7 @@ class AlqariAudioHandler extends BaseAudioHandler with SeekHandler {
       title: radio.name,
       artist: 'بث مباشر',
       album: 'القارئ',
+      artUri: artUri,
       extras: {'type': 'radio', 'radioId': radio.id},
     );
     mediaItem.add(item);
@@ -127,6 +135,7 @@ class AlqariAudioHandler extends BaseAudioHandler with SeekHandler {
       title: name,
       artist: r.name,
       album: m.name,
+      artUri: artUri,
       extras: {'type': 'surah', 'reciterId': r.id, 'moshafId': m.id, 'surah': surah},
     );
     mediaItem.add(item);
@@ -144,7 +153,7 @@ class AlqariAudioHandler extends BaseAudioHandler with SeekHandler {
     }
   }
 
-  void _report(Duration pos) {
+  void _report(Duration pos, {bool force = false}) {
     final m = _moshaf;
     final r = _reciter;
     final cb = onProgress;
@@ -156,7 +165,7 @@ class AlqariAudioHandler extends BaseAudioHandler with SeekHandler {
       surah: surah,
       surahName: _names[surah] ?? 'سورة $surah',
       positionMs: pos.inMilliseconds,
-    ));
+    ), force);
   }
 
   Future<void> _onCompleted() async {

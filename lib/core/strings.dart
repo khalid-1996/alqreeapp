@@ -27,6 +27,11 @@ class S {
   // Home
   String get hadithOfDay => _t('حديث اليوم', 'Hadith of the day');
   String get duaOfDay => _t('دعاء اليوم', 'Dua of the day');
+  String get wamdat => _t('ومضات اليوم', 'Today\'s reflection');
+  String get typeHadith => _t('حديث', 'Hadith');
+  String get typeDua => _t('دعاء', 'Dua');
+  String get typeAyah => _t('آية', 'Ayah');
+  String stoppedAt(String pos) => _t('وقفت عند $pos', 'Stopped at $pos');
   String get moreLink => _t('المزيد ←', 'More →');
   String get savedToFav => _t('حُفظ في المفضلة', 'Saved');
   String get continueListening => _t('أكمل الاستماع', 'Continue listening');

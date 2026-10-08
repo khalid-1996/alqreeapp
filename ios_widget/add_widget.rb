@@ -39,6 +39,8 @@ ext.build_configurations.each do |c|
   s['GENERATE_INFOPLIST_FILE'] = 'NO'
   s['LD_RUNPATH_SEARCH_PATHS'] = '$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks'
   s['APPLICATION_EXTENSION_API_ONLY'] = 'YES'
+  # AppIntents (interactive adhkar button) exists from iOS 16/17; weak-link for iOS 14-15.
+  s['OTHER_LDFLAGS'] = '$(inherited) -weak_framework AppIntents'
 end
 
 runner.build_configurations.each do |c|

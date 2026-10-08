@@ -9,6 +9,7 @@ import 'hadith_screen.dart';
 import 'player_screen.dart';
 import 'reciters_screen.dart';
 import 'share_sheet.dart';
+import 'wamda_screen.dart';
 
 class FavoritesScreen extends ConsumerWidget {
   const FavoritesScreen({super.key});
@@ -21,6 +22,7 @@ class FavoritesScreen extends ConsumerWidget {
         FavoriteType.radio => Icons.radio_rounded,
         FavoriteType.hadith => Icons.format_quote_rounded,
         FavoriteType.dua => Icons.volunteer_activism_rounded,
+        FavoriteType.ayah => Icons.auto_stories_rounded,
       };
 
   Future<void> _open(BuildContext context, WidgetRef ref, FavoriteItem f) async {
@@ -39,10 +41,15 @@ class FavoritesScreen extends ConsumerWidget {
       case FavoriteType.radio:
         await handler.playRadio(RadioStation.fromJson(f.payload));
         if (context.mounted) Navigator.of(context).push(PlayerScreen.route());
-      case FavoriteType.hadith:
-        Navigator.of(context).push(HadithScreen.route(Hadith.fromJson(f.payload)));
-      case FavoriteType.dua:
-        ShareImageSheet.show(context, label: s.duaOfDay, text: f.title, source: f.subtitle);
+      case FavoriteType.hadith || FavoriteType.dua || FavoriteType.ayah:
+        if (f.payload.containsKey('collection')) {
+          // A hadith saved from "حديث اليوم" (Sahih al-Bukhari / Muslim).
+          Navigator.of(context).push(HadithScreen.route(Hadith.fromJson(f.payload)));
+        } else if (f.payload.containsKey('type')) {
+          Navigator.of(context).push(WamdaScreen.route(Wamda.fromJson(f.payload)));
+        } else {
+          ShareImageSheet.show(context, label: s.wamdat, text: f.title, source: f.subtitle);
+        }
     }
   }
 
@@ -60,7 +67,7 @@ class FavoritesScreen extends ConsumerWidget {
               separatorBuilder: (_, __) => const SizedBox(height: 10),
               itemBuilder: (context, i) {
                 final f = favs[i];
-                final scripture = f.type == FavoriteType.hadith || f.type == FavoriteType.dua;
+                final scripture = f.type == FavoriteType.hadith || f.type == FavoriteType.dua || f.type == FavoriteType.ayah;
                 return Dismissible(
                   key: ValueKey(f.key),
                   direction: DismissDirection.endToStart,

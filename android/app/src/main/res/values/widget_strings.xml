@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="widget_daily_description">حديث أو دعاء اليوم</string>
-    <string name="widget_listening_description">أكمل الاستماع</string>
+    <string name="widget_daily_description">ومضات اليوم: حديث أو دعاء أو آية</string>
+    <string name="widget_listening_description">أكمل الاستماع من حيث وقفت</string>
+    <string name="widget_adhkar_description">أذكار الصباح والمساء مع العداد</string>
 </resources>

@@ -114,6 +114,35 @@ class Dhikr {
   const Dhikr({required this.id, required this.text, required this.source, required this.count});
 }
 
+/// "ومضة اليوم": a short hadith, dua or ayah. One per day, rotating type.
+enum WamdaType { hadith, dua, ayah }
+
+class Wamda {
+  final WamdaType type;
+  final int index;
+  final String text;
+  final String source;
+
+  const Wamda({required this.type, required this.index, required this.text, required this.source});
+
+  String get key => 'wamda:${type.name}:$index';
+
+  FavoriteType get favoriteType => switch (type) {
+        WamdaType.hadith => FavoriteType.hadith,
+        WamdaType.dua => FavoriteType.dua,
+        WamdaType.ayah => FavoriteType.ayah,
+      };
+
+  Map<String, dynamic> toJson() => {'type': type.name, 'index': index, 'text': text, 'source': source};
+
+  factory Wamda.fromJson(Map<String, dynamic> j) => Wamda(
+        type: WamdaType.values.firstWhere((t) => t.name == j['type'], orElse: () => WamdaType.dua),
+        index: _int(j['index']),
+        text: (j['text'] ?? '').toString(),
+        source: (j['source'] ?? '').toString(),
+      );
+}
+
 class Dua {
   final String id;
   final String text;
@@ -124,7 +153,7 @@ class Dua {
   String get key => 'dua:$id';
 }
 
-enum FavoriteType { reciter, surah, radio, hadith, dua }
+enum FavoriteType { reciter, surah, radio, hadith, dua, ayah }
 
 class FavoriteItem {
   final String key;

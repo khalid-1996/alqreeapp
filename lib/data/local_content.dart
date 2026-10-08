@@ -1,42 +1,53 @@
+import 'dart:convert';
+
+import 'package:flutter/services.dart' show rootBundle;
+
 import 'models.dart';
 
-/// Adhkar and duas bundled with the app: short, fixed, and available offline.
+/// Content bundled with the app (assets/data/*.json). The home-screen widgets
+/// read the same files, so the app and the widgets always agree.
 class LocalContent {
-  static const morning = <Dhikr>[
-    Dhikr(id: 'm1', count: 1, source: 'رواه مسلم', text: '«أصبحنا وأصبح الملك لله، والحمد لله، لا إله إلا الله وحده لا شريك له، له الملك وله الحمد وهو على كل شيء قدير»'),
-    Dhikr(id: 'm2', count: 1, source: 'رواه الترمذي', text: '«اللهم بك أصبحنا، وبك أمسينا، وبك نحيا، وبك نموت، وإليك النشور»'),
-    Dhikr(id: 'm3', count: 3, source: 'رواه أبو داود والترمذي', text: '«بسم الله الذي لا يضر مع اسمه شيء في الأرض ولا في السماء وهو السميع العليم»'),
-    Dhikr(id: 'm4', count: 3, source: 'رواه أبو داود', text: '«رضيت بالله ربًا، وبالإسلام دينًا، وبمحمد ﷺ نبيًا»'),
-    Dhikr(id: 'm5', count: 100, source: 'رواه مسلم', text: '«سبحان الله وبحمده»'),
-  ];
+  static List<Dhikr> morning = const [];
+  static List<Dhikr> evening = const [];
+  static List<Dhikr> general = const [];
+  static Map<WamdaType, List<Wamda>> wamdat = const {};
 
-  static const evening = <Dhikr>[
-    Dhikr(id: 'e1', count: 1, source: 'رواه مسلم', text: '«أمسينا وأمسى الملك لله، والحمد لله، لا إله إلا الله وحده لا شريك له، له الملك وله الحمد وهو على كل شيء قدير»'),
-    Dhikr(id: 'e2', count: 1, source: 'رواه الترمذي', text: '«اللهم بك أمسينا، وبك أصبحنا، وبك نحيا، وبك نموت، وإليك المصير»'),
-    Dhikr(id: 'e3', count: 3, source: 'رواه أبو داود والترمذي', text: '«بسم الله الذي لا يضر مع اسمه شيء في الأرض ولا في السماء وهو السميع العليم»'),
-    Dhikr(id: 'e4', count: 3, source: 'رواه مسلم', text: '«أعوذ بكلمات الله التامات من شر ما خلق»'),
-    Dhikr(id: 'e5', count: 100, source: 'رواه مسلم', text: '«سبحان الله وبحمده»'),
-  ];
+  static Future<void> load() async {
+    final adhkar = jsonDecode(await rootBundle.loadString('assets/data/adhkar.json')) as Map<String, dynamic>;
+    List<Dhikr> list(String k) => ((adhkar[k] as List?) ?? const [])
+        .map((e) => Map<String, dynamic>.from(e as Map))
+        .map((e) => Dhikr(id: '${e['id']}', text: '${e['text']}', source: '${e['source']}', count: (e['count'] as num).toInt()))
+        .toList();
+    morning = list('morning');
+    evening = list('evening');
+    general = list('general');
 
-  static const general = <Dhikr>[
-    Dhikr(id: 'g1', count: 10, source: 'متفق عليه', text: '«لا إله إلا الله وحده لا شريك له، له الملك وله الحمد وهو على كل شيء قدير»'),
-    Dhikr(id: 'g2', count: 1, source: 'رواه مسلم', text: '«سبحان الله، والحمد لله، ولا إله إلا الله، والله أكبر»'),
-    Dhikr(id: 'g3', count: 1, source: 'متفق عليه', text: '«لا حول ولا قوة إلا بالله»'),
-    Dhikr(id: 'g4', count: 100, source: 'رواه مسلم', text: '«أستغفر الله وأتوب إليه»'),
-  ];
+    final w = jsonDecode(await rootBundle.loadString('assets/data/wamdat.json')) as Map<String, dynamic>;
+    final parsed = <WamdaType, List<Wamda>>{};
+    for (final t in WamdaType.values) {
+      final raw = (w[t.name] as List?) ?? const [];
+      parsed[t] = [
+        for (var i = 0; i < raw.length; i++)
+          Wamda(type: t, index: i, text: '${(raw[i] as Map)['text']}', source: '${(raw[i] as Map)['source']}'),
+      ];
+    }
+    wamdat = parsed;
+  }
 
-  static const duas = <Dua>[
-    Dua(id: 'd1', source: 'رواه ابن ماجه', text: '«اللهم إني أسألك علمًا نافعًا، ورزقًا طيبًا، وعملًا متقبلًا»'),
-    Dua(id: 'd2', source: 'متفق عليه', text: '«ربنا آتنا في الدنيا حسنة، وفي الآخرة حسنة، وقنا عذاب النار»'),
-    Dua(id: 'd3', source: 'رواه مسلم', text: '«اللهم إني أسألك الهدى والتقى والعفاف والغنى»'),
-    Dua(id: 'd4', source: 'رواه الترمذي', text: '«يا مقلب القلوب ثبت قلبي على دينك»'),
-    Dua(id: 'd5', source: 'رواه أبو داود والنسائي', text: '«اللهم أعني على ذكرك وشكرك وحسن عبادتك»'),
-    Dua(id: 'd6', source: 'رواه مسلم', text: '«اللهم أصلح لي ديني الذي هو عصمة أمري، وأصلح لي دنياي التي فيها معاشي، وأصلح لي آخرتي التي فيها معادي، واجعل الحياة زيادة لي في كل خير، واجعل الموت راحة لي من كل شر»'),
-    Dua(id: 'd7', source: 'رواه البخاري', text: '«اللهم إني أعوذ بك من الهم والحزن، والعجز والكسل، والجبن والبخل، وضلع الدين وغلبة الرجال»'),
-  ];
+  /// Days since epoch for the local calendar date. The widgets use the same formula.
+  static int dayIndex(DateTime d) => DateTime.utc(d.year, d.month, d.day).millisecondsSinceEpoch ~/ 86400000;
 
-  /// Same dua for everyone on the same day.
-  static Dua duaFor(DateTime day) => duas[_dayIndex(day) % duas.length];
+  /// Same ومضة for everyone on the same day: hadith, then dua, then ayah.
+  static Wamda wamdaFor(DateTime day) {
+    final i = dayIndex(day);
+    final type = WamdaType.values[i % 3];
+    final list = wamdat[type] ?? const [];
+    if (list.isEmpty) {
+      return const Wamda(type: WamdaType.dua, index: 0, text: '«ربنا آتنا في الدنيا حسنة، وفي الآخرة حسنة، وقنا عذاب النار»', source: 'متفق عليه');
+    }
+    return list[(i ~/ 3) % list.length];
+  }
 
-  static int _dayIndex(DateTime d) => DateTime.utc(d.year, d.month, d.day).millisecondsSinceEpoch ~/ 86400000;
+  /// Evening adhkar from 15:00 until 04:00, morning otherwise.
+  static bool isEvening(DateTime now) => now.hour >= 15 || now.hour < 4;
 }
