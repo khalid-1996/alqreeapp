@@ -61,6 +61,12 @@ class MiniPlayer extends ConsumerWidget {
                           icon: Icon(playing ? Icons.pause_rounded : Icons.play_arrow_rounded),
                         ),
                 ),
+                // Stops playback and hides the mini player.
+                IconButton(
+                  tooltip: MaterialLocalizations.of(context).closeButtonTooltip,
+                  onPressed: handler.stop,
+                  icon: const Icon(Icons.close_rounded, color: AppColors.muted),
+                ),
               ],
             ),
           ),

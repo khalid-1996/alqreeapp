@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../audio/audio_handler.dart';
 import '../core/db.dart';
+import '../core/home_widgets.dart';
 import '../core/strings.dart';
 import '../data/local_content.dart';
 import '../data/models.dart';
@@ -85,6 +86,7 @@ final hadithOfDayProvider = FutureProvider<Hadith>((ref) async {
   final repo = ref.watch(repositoryProvider);
   final h = await repo.hadithOfDay(DateTime.now());
   await repo.rememberLastHadith(h);
+  HomeWidgets.updateDaily(hadith: h, dua: ref.read(duaOfDayProvider));
   return h;
 });
 
@@ -166,6 +168,7 @@ class LastListeningNotifier extends StateNotifier<LastListening?> {
   void save(LastListening v) {
     _p.setString('lastListening', jsonEncode(v.toJson()));
     state = v;
+    HomeWidgets.updateListening(v);
   }
 }
 

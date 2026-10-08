@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'app.dart';
 import 'audio/audio_handler.dart';
 import 'core/db.dart';
+import 'core/home_widgets.dart';
 import 'data/api.dart';
 import 'data/repository.dart';
 import 'state/providers.dart';
@@ -29,6 +30,7 @@ Future<void> main() async {
     ),
   );
 
+  await HomeWidgets.init();
   final prefs = await SharedPreferences.getInstance();
   final db = await AppDb.open();
   final dio = buildDio();

@@ -38,6 +38,7 @@ jobs:
       - name: Analyze
         run: |
           flutter pub get
+          dart run flutter_launcher_icons
           flutter analyze --no-fatal-infos --no-fatal-warnings 2>&1 | tee analyze.log
           flutter test 2>&1 | tee -a analyze.log
 
@@ -97,9 +98,15 @@ jobs:
           # iPhone only for the first release.
           sed -i '' 's/TARGETED_DEVICE_FAMILY = "1,2";/TARGETED_DEVICE_FAMILY = 1;/g' ios/Runner.xcodeproj/project.pbxproj
 
-      - name: Build iOS (no code signing)
+      - name: App icon and home-screen widget
         run: |
           flutter pub get
+          dart run flutter_launcher_icons
+          VERSION=$(grep -E '^version:' pubspec.yaml | sed -E 's/version: *//')
+          ruby ios_widget/add_widget.rb "${VERSION%%+*}" "${VERSION##*+}"
+
+      - name: Build iOS (no code signing)
+        run: |
           flutter build ios --release --no-codesign 2>&1 | tee build.log; exit ${PIPESTATUS[0]}
 
       - name: Package IPA

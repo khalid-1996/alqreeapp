@@ -65,20 +65,12 @@ class _Header extends ConsumerWidget {
             ],
           ),
         ),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-          decoration: BoxDecoration(
-            color: AppColors.glass,
-            borderRadius: BorderRadius.circular(999),
-            border: Border.all(color: AppColors.glassBorder),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(hijri, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.accent)),
-              Text('${now.day}/${now.month}/${now.year}', style: const TextStyle(fontSize: 11, color: AppColors.muted)),
-            ],
-          ),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text(hijri, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white)),
+            Text('${now.day}/${now.month}/${now.year}', style: const TextStyle(fontSize: 12, color: AppColors.muted)),
+          ],
         ),
       ],
     );

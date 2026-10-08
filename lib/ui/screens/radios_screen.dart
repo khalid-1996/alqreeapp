@@ -97,7 +97,10 @@ class _RadioTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final s = ref.watch(stringsProvider);
     final handler = ref.read(audioHandlerProvider);
+    void toggle() => active ? handler.pause() : handler.playRadio(radio);
     return GlassCard(
+      // The whole card plays the station, not only the round button.
+      onTap: toggle,
       radius: 20,
       color: active ? AppColors.card : null,
       borderColor: active ? AppColors.accent : null,
@@ -112,7 +115,7 @@ class _RadioTile extends ConsumerWidget {
                 backgroundColor: active ? AppColors.accent : const Color(0x1AFFFFFF),
                 foregroundColor: active ? AppColors.background : Colors.white,
               ),
-              onPressed: () => active ? handler.pause() : handler.playRadio(radio),
+              onPressed: toggle,
               icon: Icon(active ? Icons.pause_rounded : Icons.play_arrow_rounded),
             ),
           ),
