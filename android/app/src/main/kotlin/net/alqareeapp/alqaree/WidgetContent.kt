@@ -7,7 +7,7 @@ import java.util.Calendar
 import java.util.TimeZone
 
 /**
- * Reads the same JSON files the Flutter app bundles (assets/data/*.json), so widgets
+ * Reads the same JSON files the Flutter app bundles (assets/data (wamdat.json, adhkar.json)), so widgets
  * work on their own, change every day, and always match the app.
  */
 object WidgetContent {
