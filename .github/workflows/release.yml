@@ -1,0 +1,150 @@
+name: Build & Release
+
+# Push a tag like v1.0.0 to build an APK and an (unsigned) IPA and attach them to a GitHub Release.
+# Every push to main also builds both, so compile errors show up early.
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+
+env:
+  ORG: net.alqareeapp
+  PROJECT: alqaree
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Generate platform files
+        run: flutter create --org "$ORG" --project-name "$PROJECT" --platforms android,ios .
+
+      - name: Analyze
+        run: |
+          flutter pub get
+          flutter analyze --no-fatal-infos --no-fatal-warnings 2>&1 | tee analyze.log
+          flutter test 2>&1 | tee -a analyze.log
+
+      - name: Build APK
+        run: flutter build apk --release 2>&1 | tee build.log; exit ${PIPESTATUS[0]}
+
+      - name: Rename APK
+        run: |
+          NAME="alqaree-${GITHUB_REF_NAME//\//-}.apk"
+          mv build/app/outputs/flutter-apk/app-release.apk "$NAME"
+          echo "APK=$NAME" >> "$GITHUB_ENV"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: apk
+          path: ${{ env.APK }}
+
+      - name: Report failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const read = f => fs.existsSync(f) ? fs.readFileSync(f, 'utf8') : '';
+            const log = (read('analyze.log') + '\n' + read('build.log')).split('\n').filter(l => /error|Error|FAILURE|failed/.test(l)).slice(-80).join('\n');
+            await github.rest.issues.create({
+              owner: context.repo.owner, repo: context.repo.repo,
+              title: `Android build failed (${context.sha.slice(0, 7)})`,
+              body: '```\n' + (log || 'See the workflow run log.') + '\n```\n' + `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+            });
+
+  ios:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Generate platform files
+        run: flutter create --org "$ORG" --project-name "$PROJECT" --platforms android,ios .
+
+      - name: Configure Info.plist
+        run: |
+          PLIST=ios/Runner/Info.plist
+          /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName القارئ" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Delete :UIBackgroundModes" "$PLIST" 2>/dev/null || true
+          /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes array" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes:0 string audio" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Delete :ITSAppUsesNonExemptEncryption" "$PLIST" 2>/dev/null || true
+          /usr/libexec/PlistBuddy -c "Add :ITSAppUsesNonExemptEncryption bool false" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Delete :UISupportedInterfaceOrientations" "$PLIST" 2>/dev/null || true
+          /usr/libexec/PlistBuddy -c "Add :UISupportedInterfaceOrientations array" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Add :UISupportedInterfaceOrientations:0 string UIInterfaceOrientationPortrait" "$PLIST"
+          # iPhone only for the first release.
+          sed -i '' 's/TARGETED_DEVICE_FAMILY = "1,2";/TARGETED_DEVICE_FAMILY = 1;/g' ios/Runner.xcodeproj/project.pbxproj
+
+      - name: Build iOS (no code signing)
+        run: |
+          flutter pub get
+          flutter build ios --release --no-codesign 2>&1 | tee build.log; exit ${PIPESTATUS[0]}
+
+      - name: Package IPA
+        run: |
+          NAME="alqaree-${GITHUB_REF_NAME//\//-}-unsigned.ipa"
+          mkdir -p Payload
+          cp -R build/ios/iphoneos/Runner.app Payload/
+          zip -qry "$NAME" Payload
+          echo "IPA=$NAME" >> "$GITHUB_ENV"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ipa
+          path: ${{ env.IPA }}
+
+      - name: Report failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const log = fs.existsSync('build.log') ? fs.readFileSync('build.log', 'utf8') : '';
+            const lines = log.split('\n').filter(l => /error|Error|failed/.test(l)).slice(-80).join('\n');
+            await github.rest.issues.create({
+              owner: context.repo.owner, repo: context.repo.repo,
+              title: `iOS build failed (${context.sha.slice(0, 7)})`,
+              body: '```\n' + (lines || 'See the workflow run log.') + '\n```\n' + `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+            });
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [android, ios]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          name: القارئ ${{ github.ref_name }}
+          files: dist/*
+          body: |
+            **القارئ ${{ github.ref_name }}**
+
+            - `*.apk`: للأندرويد، يتثبت مباشرة (موقّع بمفتاح تجريبي، مو لمتجر Google Play).
+            - `*-unsigned.ipa`: للآيفون، بدون توقيع. يحتاج توقيع قبل التثبيت (AltStore أو Sideloadly أو شهادة حسابك في أبل).
