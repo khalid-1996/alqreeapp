@@ -1,7 +1,7 @@
 name: Build & Release
 
-# Push a tag like v1.0.0 to build an APK and an (unsigned) IPA and attach them to a GitHub Release.
-# Every push to main also builds both, so compile errors show up early.
+# Every push to main builds an APK and an (unsigned) IPA.
+# The first build of each new `version:` in pubspec.yaml is published as a GitHub Release.
 on:
   push:
     branches: [main]
@@ -130,21 +130,50 @@ jobs:
             });
 
   release:
-    if: startsWith(github.ref, 'refs/tags/v')
+    # Publishes a Release named after the version in pubspec.yaml (e.g. v1.0.0),
+    # once per version: bump `version:` to publish a new one.
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
     needs: [android, ios]
     runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
     steps:
+      - uses: actions/checkout@v4
+
+      - name: Read version
+        run: |
+          VERSION=$(grep -E '^version:' pubspec.yaml | sed -E 's/version: *//; s/\+.*//')
+          TAG="v$VERSION"
+          echo "TAG=$TAG" >> "$GITHUB_ENV"
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "EXISTS=true" >> "$GITHUB_ENV"
+          else
+            echo "EXISTS=false" >> "$GITHUB_ENV"
+          fi
+
       - uses: actions/download-artifact@v4
+        if: env.EXISTS == 'false'
         with:
           path: dist
           merge-multiple: true
 
+      - name: Name files by version
+        if: env.EXISTS == 'false'
+        run: |
+          cd dist
+          for f in *.apk; do mv "$f" "alqaree-$TAG.apk"; done
+          for f in *.ipa; do mv "$f" "alqaree-$TAG-unsigned.ipa"; done
+          ls -la
+
       - uses: softprops/action-gh-release@v2
+        if: env.EXISTS == 'false'
         with:
-          name: القارئ ${{ github.ref_name }}
+          tag_name: ${{ env.TAG }}
+          target_commitish: ${{ github.sha }}
+          name: القارئ ${{ env.TAG }}
           files: dist/*
           body: |
-            **القارئ ${{ github.ref_name }}**
+            **القارئ ${{ env.TAG }}**
 
-            - `*.apk`: للأندرويد، يتثبت مباشرة (موقّع بمفتاح تجريبي، مو لمتجر Google Play).
-            - `*-unsigned.ipa`: للآيفون، بدون توقيع. يحتاج توقيع قبل التثبيت (AltStore أو Sideloadly أو شهادة حسابك في أبل).
+            - `alqaree-${{ env.TAG }}.apk`: للأندرويد، يتثبت مباشرة (موقّع بمفتاح تجريبي، مو لمتجر Google Play).
+            - `alqaree-${{ env.TAG }}-unsigned.ipa`: للآيفون بدون توقيع، يحتاج توقيع قبل التثبيت (AltStore أو Sideloadly أو شهادة حسابك في أبل).
