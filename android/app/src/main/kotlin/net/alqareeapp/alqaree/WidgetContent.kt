@@ -39,8 +39,16 @@ object WidgetContent {
         return "%04d-%02d-%02d".format(c.get(Calendar.YEAR), c.get(Calendar.MONTH) + 1, c.get(Calendar.DAY_OF_MONTH))
     }
 
-    /** Today's ومضة: (type label, item). */
+    /** Today's ومضة: (type label, item). Prefers what the app shared, so all surfaces match. */
     fun wamda(context: Context): Pair<String, Item>? {
+        try {
+            val shared = prefs(context).getString("wamda_days", null)
+            val day = shared?.let { JSONObject(it).optJSONObject(today()) }
+            if (day != null && day.optString("text").isNotBlank()) {
+                return day.optString("label") to Item("shared", day.optString("text"), day.optString("source"))
+            }
+        } catch (e: Exception) {
+        }
         val json = asset(context, "wamdat.json") ?: return null
         val i = dayIndex()
         val type = wamdaTypes[(i % 3).toInt()]

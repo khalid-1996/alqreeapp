@@ -7,6 +7,7 @@ import '../../state/providers.dart';
 import '../widgets/common.dart';
 import 'favorites_screen.dart';
 import 'hadith_screen.dart';
+import 'notifications_screen.dart';
 
 class MoreScreen extends ConsumerWidget {
   const MoreScreen({super.key});
@@ -48,6 +49,11 @@ class MoreScreen extends ConsumerWidget {
         const SizedBox(height: 20),
         _GroupTitle(s.settings),
         _Group(children: [
+          _Row(
+            label: s.notifications,
+            value: ref.watch(notificationsPermittedProvider) && ref.watch(notificationPrefsProvider).anyEnabled ? s.notifOn : s.notifOff,
+            onTap: () => Navigator.of(context).push(NotificationsScreen.route()),
+          ),
           _Row(
             label: s.language,
             value: s.languageValue,
@@ -188,6 +194,13 @@ class InfoScreen extends StatelessWidget {
               'https://github.com/fawazahmed0/hadith-api'
             ),
             (
+              'Tanzil Quran Text',
+              en
+                  ? 'Quranic verses in ومضات and duas are the Uthmani text of the Tanzil Project, copied verbatim (CC BY 3.0).'
+                  : 'الآيات في الومضات والأدعية من نص التنزيل العثماني (Tanzil)، منقولة كما هي دون تعديل (CC BY 3.0).',
+              'https://tanzil.net'
+            ),
+            (
               en ? 'Adhkar and duas' : 'الأذكار والأدعية',
               en
                   ? 'Selected authentic adhkar and duas from Hisn al-Muslim and the Sunnah, bundled in the app.'
@@ -226,6 +239,13 @@ class InfoScreen extends StatelessWidget {
               en
                   ? 'To stream audio and load content, the app connects to mp3quran.net and cdn.jsdelivr.net. These services receive standard network information such as your IP address, as with any website.'
                   : 'لتشغيل الصوت وتحميل المحتوى يتصل التطبيق بـ mp3quran.net و cdn.jsdelivr.net، وتصلها معلومات الاتصال المعتادة مثل عنوان IP كأي موقع.',
+              null
+            ),
+            (
+              en ? 'Notifications' : 'الإشعارات',
+              en
+                  ? 'Reminders are scheduled locally on your device. There is no push server, and you can change or turn them off at any time.'
+                  : 'التذكيرات تُجدول محليًا على جهازك، بدون أي خادم. تقدر تغيّرها أو توقفها متى ما تبي.',
               null
             ),
           ],

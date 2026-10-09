@@ -4,11 +4,13 @@ import 'package:flutter/foundation.dart';
 import 'package:home_widget/home_widget.dart';
 
 import '../audio/audio_handler.dart';
+import '../data/local_content.dart';
+import '../data/models.dart';
 
 /// Bridge to the home-screen widgets (Android AppWidgets, iOS WidgetKit).
 ///
-/// - "ومضات اليوم" is computed by the widgets themselves from assets/data/wamdat.json,
-///   so it changes every day without opening the app.
+/// - "ومضات اليوم": the app shares the next 14 days; beyond that the widgets compute it
+///   themselves from the bundled assets/data/wamdat.json, so it never goes stale.
 /// - "أكمل الاستماع" and the adhkar counter are shared through home_widget storage.
 /// Failures are swallowed: a widget must never break the app.
 class HomeWidgets {
@@ -42,6 +44,33 @@ class HomeWidgets {
       debugPrint('home_widget update $android: $e');
     }
   }
+
+  // ---------- ومضات اليوم ----------
+
+  /// The next two weeks of ومضات, so the widget shows exactly what the app and the
+  /// notifications show, even after the content was refreshed online.
+  /// The widget falls back to the bundled list for days not covered here.
+  static Future<void> saveUpcomingWamdat() async {
+    final now = DateTime.now();
+    final days = <String, Map<String, String>>{};
+    for (var d = 0; d < 14; d++) {
+      final day = DateTime(now.year, now.month, now.day + d);
+      final w = LocalContent.wamdaFor(day);
+      days[today(day)] = {'label': typeLabel(w.type), 'text': w.text, 'source': w.source};
+    }
+    try {
+      await HomeWidget.saveWidgetData<String>('wamda_days', jsonEncode(days));
+      await _update(androidWamda, iosWamda);
+    } catch (e) {
+      debugPrint('home_widget wamdat: $e');
+    }
+  }
+
+  static String typeLabel(WamdaType t) => switch (t) {
+        WamdaType.hadith => 'حديث',
+        WamdaType.dua => 'دعاء',
+        WamdaType.ayah => 'آية',
+      };
 
   // ---------- Continue listening ----------
 

@@ -96,6 +96,50 @@ class S {
   String get hadiths => _t('الأحاديث', 'Hadiths');
   String get noFavorites => _t('لم تحفظ شيئًا بعد', 'Nothing saved yet');
 
+  // Notifications
+  String get notifications => _t('الإشعارات', 'Notifications');
+  String get notifOn => _t('مفعّلة', 'On');
+  String get notifOff => _t('متوقفة', 'Off');
+  String get inviteTitle => _t('ومضة كل يوم، وتذكير الجمعة', 'A daily reflection, and a Friday reminder');
+  String get inviteBody => _t('إشعار واحد هادئ في اليوم. تقدر تغيّر وقته أو تقلّله متى ما تبي.',
+      'One calm notification a day. Change the time or send fewer whenever you like.');
+  String get enable => _t('فعّل', 'Turn on');
+  String get notNow => _t('ليس الآن', 'Not now');
+  String get permissionOff => _t('الإشعارات غير مسموحة لتطبيق القارئ', 'Notifications are not allowed for Al-Qari');
+  String get permissionHelp => _t('اسمح بها من إعدادات الجهاز ← التطبيقات ← القارئ ← الإشعارات',
+      'Allow them in device Settings → Apps → Al-Qari → Notifications');
+  String get allow => _t('السماح', 'Allow');
+  String get wamdaNotif => _t('ومضات اليوم', 'Daily reflection');
+  String get wamdaNotifSub => _t('حديث أو دعاء أو آية', 'A hadith, dua or ayah');
+  String get time => _t('الوقت', 'Time');
+  String get howOften => _t('كم مرة', 'How often');
+  String get daily => _t('يوميًا', 'Daily');
+  String get threeWeekly => _t('٣ مرات بالأسبوع', '3× a week');
+  String get weekly => _t('أسبوعيًا', 'Weekly');
+  String get threeWeeklyHint => _t('السبت والاثنين والأربعاء', 'Saturday, Monday and Wednesday');
+  String get weeklyHint => _t('كل اثنين', 'Every Monday');
+  String get fridayNotif => _t('تذكير الجمعة', 'Friday reminder');
+  String get fridayNotifSub => _t('سورة الكهف والصلاة على النبي ﷺ. يوم الجمعة يغني عن الومضة.',
+      'Surah Al-Kahf and salawat. On Fridays it replaces the reflection.');
+  String get adhkarNotif => _t('تذكير الأذكار', 'Adhkar reminders');
+  String get adhkarNotifSub => _t('لا نذكّرك إذا أتممتها', 'Skipped once you have finished them');
+  String get quiet => _t('بدون إزعاج', 'Keep it quiet');
+  String get silent => _t('إشعارات صامتة', 'Silent notifications');
+  String get silentSub => _t('تظهر بدون صوت ولا اهتزاز', 'No sound, no vibration');
+  String get pause => _t('إيقاف مؤقت', 'Pause');
+  String get pauseNone => _t('لا', 'No');
+  String get pauseDay => _t('يوم', 'A day');
+  String get pauseWeek => _t('أسبوع', 'A week');
+  String pausedUntil(String d) => _t('متوقفة حتى $d', 'Paused until $d');
+  String perWeek(int n) => n == 0
+      ? _t('لن تصلك إشعارات', 'You will get no notifications')
+      : _t('تقريبًا $n ${n == 1 ? 'إشعار' : 'إشعارات'} في الأسبوع', 'About $n a week');
+  String get tryIt => _t('جرّب إشعارًا الآن', 'Send a sample now');
+  String get sampleSent => _t('أرسلنا لك إشعارًا تجريبيًا', 'Sample sent');
+  String get notifPrivacy => _t('الإشعارات تُجدول على جهازك فقط، ولا نرسل أي بيانات.',
+      'Notifications are scheduled on your device. Nothing is sent anywhere.');
+  String get chooseReciterForKahf => _t('اختر قارئًا لتستمع لسورة الكهف', 'Pick a reciter to listen to Al-Kahf');
+
   // Errors
   String get offline => _t('تحتاج اتصال بالإنترنت للاستماع', 'An internet connection is needed to listen');
   String get loadFailed => _t('تعذّر التحميل، تأكد من الاتصال', 'Could not load. Check your connection');

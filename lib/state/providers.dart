@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../audio/audio_handler.dart';
 import '../core/db.dart';
 import '../core/home_widgets.dart';
+import '../core/notifications.dart';
 import '../core/strings.dart';
 import '../data/local_content.dart';
 import '../data/models.dart';
@@ -192,6 +193,8 @@ class AdhkarCounter extends StateNotifier<Map<String, int>> {
     if (used >= d.count) return;
     state = {...state, d.id: used + 1};
     HomeWidgets.saveAdhkar(state);
+    if (LocalContent.allDone(LocalContent.morning, state)) Notifications.cancelToday(evening: false);
+    if (LocalContent.allDone(LocalContent.evening, state)) Notifications.cancelToday(evening: true);
   }
 
   void reset(List<Dhikr> list) {
@@ -205,3 +208,37 @@ class AdhkarCounter extends StateNotifier<Map<String, int>> {
 }
 
 final adhkarCounterProvider = StateNotifierProvider<AdhkarCounter, Map<String, int>>((ref) => AdhkarCounter());
+
+// ---------- Notifications ----------
+
+class NotificationPrefsNotifier extends StateNotifier<NotificationPrefs> {
+  final SharedPreferences _p;
+  NotificationPrefsNotifier(this._p) : super(NotificationPrefs.decode(_p.getString('notifPrefs')));
+
+  void update(NotificationPrefs next) {
+    _p.setString('notifPrefs', next.encode());
+    state = next;
+  }
+}
+
+final notificationPrefsProvider = StateNotifierProvider<NotificationPrefsNotifier, NotificationPrefs>(
+  (ref) => NotificationPrefsNotifier(ref.watch(prefsProvider)),
+);
+
+/// Whether the OS currently allows notifications. Refreshed on resume and after asking.
+final notificationsPermittedProvider = StateProvider<bool>((ref) => false);
+
+typedef Reader = T Function<T>(ProviderListenable<T> provider);
+
+/// Re-plans every notification and the widgets' upcoming ومضات from the current state.
+Future<void> syncNotifications(Reader read) async {
+  final permitted = await Notifications.isPermitted();
+  read(notificationsPermittedProvider.notifier).state = permitted;
+  final counts = read(adhkarCounterProvider);
+  await Notifications.reschedule(
+    read(notificationPrefsProvider),
+    morningDone: LocalContent.allDone(LocalContent.morning, counts),
+    eveningDone: LocalContent.allDone(LocalContent.evening, counts),
+  );
+  await HomeWidgets.saveUpcomingWamdat();
+}

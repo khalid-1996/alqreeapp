@@ -12,6 +12,7 @@ import 'app.dart';
 import 'audio/audio_handler.dart';
 import 'core/db.dart';
 import 'core/home_widgets.dart';
+import 'core/notifications.dart';
 import 'data/api.dart';
 import 'data/local_content.dart';
 import 'data/repository.dart';
@@ -21,8 +22,10 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
 
-  await LocalContent.load();
+  final db = await AppDb.open();
+  await LocalContent.load(db: db);
   AlqariAudioHandler.artUri = await _artworkFile();
+  await Notifications.init();
 
   final session = await AudioSession.instance;
   await session.configure(const AudioSessionConfiguration.music());
@@ -40,18 +43,29 @@ Future<void> main() async {
   await HomeWidgets.init();
   HomeWidgets.refreshAll();
   final prefs = await SharedPreferences.getInstance();
-  final db = await AppDb.open();
   final dio = buildDio();
   final repo = Repository(db: db, mp3: Mp3QuranApi(dio), hadith: HadithApi(dio));
 
+  final container = ProviderContainer(
+    overrides: [
+      prefsProvider.overrideWithValue(prefs),
+      dbProvider.overrideWithValue(db),
+      repositoryProvider.overrideWithValue(repo),
+      audioHandlerProvider.overrideWithValue(handler),
+    ],
+  );
+
+  // Weekly content refresh from the content API; offline, the cached or bundled copy is used.
+  LocalContent.refreshRemote(db, dio).then((changed) {
+    if (changed) {
+      container.invalidate(wamdaOfDayProvider);
+      syncNotifications(container.read);
+    }
+  });
+
   runApp(
-    ProviderScope(
-      overrides: [
-        prefsProvider.overrideWithValue(prefs),
-        dbProvider.overrideWithValue(db),
-        repositoryProvider.overrideWithValue(repo),
-        audioHandlerProvider.overrideWithValue(handler),
-      ],
+    UncontrolledProviderScope(
+      container: container,
       child: const AlqareeApp(),
     ),
   );

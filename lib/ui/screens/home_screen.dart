@@ -5,6 +5,7 @@ import 'package:hijri/hijri_calendar.dart';
 import '../../core/theme.dart';
 import '../../data/models.dart';
 import '../../core/home_widgets.dart';
+import '../../core/notifications.dart';
 import '../../state/actions.dart';
 import '../../state/providers.dart';
 import '../shell.dart';
@@ -30,6 +31,7 @@ class HomeScreen extends ConsumerWidget {
           _Header(),
           const SizedBox(height: 18),
           const _WamdaCard(),
+          const _NotificationInvite(),
           const SizedBox(height: 16),
           const _ContinueListening(),
           _Tiles(),
@@ -296,6 +298,62 @@ class _RadiosStrip extends ConsumerWidget {
               ),
             );
           },
+        ),
+      ),
+    );
+  }
+}
+
+/// Asked once, in context, after the user has seen what a ومضة looks like.
+/// The system permission prompt only appears if they choose "فعّل".
+class _NotificationInvite extends ConsumerWidget {
+  const _NotificationInvite();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final prefs = ref.watch(notificationPrefsProvider);
+    if (prefs.asked) return const SizedBox.shrink();
+    final s = ref.watch(stringsProvider);
+
+    Future<void> answer(bool enable) async {
+      final notifier = ref.read(notificationPrefsProvider.notifier);
+      if (enable) {
+        final ok = await Notifications.requestPermission();
+        ref.read(notificationsPermittedProvider.notifier).state = ok;
+      }
+      notifier.update(ref.read(notificationPrefsProvider).copyWith(asked: true));
+      await syncNotifications(ref.read);
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: GlassCard(
+        padding: const EdgeInsets.fromLTRB(16, 14, 12, 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.notifications_none_rounded, color: Colors.white, size: 22),
+                const SizedBox(width: 10),
+                Expanded(child: Text(s.inviteTitle, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700))),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(s.inviteBody, style: const TextStyle(fontSize: 13, color: AppColors.muted, height: 1.5)),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton(onPressed: () => answer(false), child: Text(s.notNow, style: const TextStyle(color: AppColors.muted))),
+                const SizedBox(width: 4),
+                FilledButton(
+                  style: FilledButton.styleFrom(backgroundColor: Colors.white, foregroundColor: AppColors.background),
+                  onPressed: () => answer(true),
+                  child: Text(s.enable, style: const TextStyle(fontWeight: FontWeight.w800)),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );

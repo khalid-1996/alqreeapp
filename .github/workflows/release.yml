@@ -37,6 +37,7 @@ jobs:
 
       - name: Analyze
         run: |
+          python3 tool/patch_platforms.py android
           flutter pub get
           dart run flutter_launcher_icons
           flutter analyze --no-fatal-infos --no-fatal-warnings 2>&1 | tee analyze.log
@@ -85,6 +86,7 @@ jobs:
 
       - name: Configure Info.plist
         run: |
+          python3 tool/patch_platforms.py ios
           PLIST=ios/Runner/Info.plist
           /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName القارئ" "$PLIST"
           /usr/libexec/PlistBuddy -c "Delete :UIBackgroundModes" "$PLIST" 2>/dev/null || true

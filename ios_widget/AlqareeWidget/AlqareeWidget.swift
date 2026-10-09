@@ -48,7 +48,19 @@ enum WidgetContent {
         return String(format: "%04ld-%02ld-%02ld", p.year ?? 0, p.month ?? 0, p.day ?? 0)
     }
 
+    static func dateKey(_ date: Date) -> String {
+        let p = gregorian.dateComponents([.year, .month, .day], from: date)
+        return String(format: "%04ld-%02ld-%02ld", p.year ?? 0, p.month ?? 0, p.day ?? 0)
+    }
+
+    /// Prefers what the app shared (next 14 days), so the widget, the app and notifications match.
     static func wamda(_ date: Date = Date()) -> (label: String, item: ContentItem)? {
+        if let raw = defaults?.string(forKey: "wamda_days"),
+           let data = raw.data(using: .utf8),
+           let days = (try? JSONSerialization.jsonObject(with: data)) as? [String: [String: String]],
+           let d = days[dateKey(date)], let text = d["text"], !text.isEmpty {
+            return (d["label"] ?? "", ContentItem(id: "shared", text: text, source: d["source"] ?? "", count: 1))
+        }
         guard let json = asset("wamdat.json") else { return nil }
         let i = dayIndex(date)
         let types = ["hadith", "dua", "ayah"]

@@ -1,9 +1,11 @@
 import 'package:alqaree/core/home_widgets.dart';
+import 'package:alqaree/core/notifications.dart';
 import 'package:alqaree/core/strings.dart';
 import 'package:alqaree/core/theme.dart';
 import 'package:alqaree/data/api.dart';
 import 'package:alqaree/data/local_content.dart';
 import 'package:alqaree/data/models.dart';
+import 'package:flutter/material.dart' show TimeOfDay;
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -48,6 +50,52 @@ void main() {
   test('positions format as mm:ss', () {
     expect(HomeWidgets.formatPosition(492000), '08:12');
     expect(HomeWidgets.formatPosition(3723000), '1:02:03');
+  });
+
+  test('content is long enough not to repeat for weeks, and valid', () {
+    expect(LocalContent.wamdat[WamdaType.hadith]!.length, greaterThanOrEqualTo(30));
+    expect(LocalContent.wamdat[WamdaType.dua]!.length, greaterThanOrEqualTo(20));
+    expect(LocalContent.wamdat[WamdaType.ayah]!.length, greaterThanOrEqualTo(30));
+    expect(LocalContent.friday, isNotEmpty);
+    final seen = <String>{};
+    for (var d = 0; d < 60; d++) {
+      seen.add(LocalContent.wamdaFor(DateTime(2026, 10, 1).add(Duration(days: d))).key);
+    }
+    expect(seen.length, 60, reason: 'no ومضة repeats within two months');
+    expect(LocalContent.isValid({'hadith': [], 'dua': [], 'ayah': [], 'friday': []}), isFalse);
+  });
+
+  test('friday text changes weekly, not daily', () {
+    final fri = DateTime(2026, 10, 9); // a Friday
+    expect(LocalContent.fridayFor(fri).text, LocalContent.fridayFor(fri.add(const Duration(days: 1))).text);
+    expect(LocalContent.fridayFor(fri).text, isNot(LocalContent.fridayFor(fri.add(const Duration(days: 7))).text));
+  });
+
+  test('notification prefs round-trip', () {
+    final p = const NotificationPrefs().copyWith(
+      asked: true,
+      wamdaTime: const TimeOfDay(hour: 21, minute: 5),
+      frequency: WamdaFrequency.threeWeekly,
+      morning: true,
+      silent: true,
+      pausedUntil: DateTime(2026, 10, 16),
+    );
+    final q = NotificationPrefs.decode(p.encode());
+    expect(q.asked, isTrue);
+    expect(q.wamdaTime, const TimeOfDay(hour: 21, minute: 5));
+    expect(q.frequency, WamdaFrequency.threeWeekly);
+    expect(q.morning, isTrue);
+    expect(q.silent, isTrue);
+    expect(q.pausedUntil, DateTime(2026, 10, 16));
+    expect(NotificationPrefs.decode('not json').wamda, isTrue);
+  });
+
+  test('defaults send at most one notification a day', () {
+    // Daily ومضة on 6 days + the Friday reminder in its place on Friday.
+    expect(const NotificationPrefs().perWeek(), 7);
+    expect(const NotificationPrefs(frequency: WamdaFrequency.weekly).perWeek(), 2);
+    expect(const NotificationPrefs(wamda: false, friday: false).perWeek(), 0);
+    expect(const NotificationPrefs(morning: true, evening: true).perWeek(), 21);
   });
 
   test('strings switch language', () {
