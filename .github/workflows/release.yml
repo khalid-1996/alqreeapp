@@ -36,7 +36,9 @@ jobs:
         run: flutter create --org "$ORG" --project-name "$PROJECT" --platforms android,ios .
 
       - name: Analyze
+        shell: bash
         run: |
+          set -o pipefail
           python3 tool/patch_platforms.py android
           flutter pub get
           dart run flutter_launcher_icons
