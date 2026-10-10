@@ -6,6 +6,9 @@ RUN export DEBIAN_FRONTEND=noninteractive && apt-get update \
  && apt-get install -y --no-install-recommends ffmpeg tzdata \
  && rm -rf /var/lib/apt/lists/*
 
+# Same version as the base image, so it uses the browsers already in the image.
+RUN pip install --no-cache-dir playwright==1.47.0
+
 WORKDIR /app
 COPY assets/icon/logo_white.png assets/icon/logo_white.png
 COPY server/video/render.py server/video/template.html server/video/server.py server/video/
