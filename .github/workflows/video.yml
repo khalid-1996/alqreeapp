@@ -21,7 +21,7 @@ jobs:
         run: |
           set -euo pipefail
           docker images
-          docker run -d --name v -e RENDER_AT=05:00 -p 8090:8090 alqaree-video 2>err.txt \
+          docker run -d --name video -e RENDER_AT=05:00 -p 8090:8090 alqaree-video 2>err.txt \
             || { echo "::error title=docker run::$(tr '\n' ' ' < err.txt)"; exit 1; }
           for i in $(seq 1 60); do curl -sf localhost:8090/health && break; sleep 2; done
           curl -sf --max-time 600 localhost:8090/day/2026-10-14 | tee day.json
@@ -32,7 +32,7 @@ jobs:
       - name: Logs
         if: always()
         run: |
-          docker logs v > logs.txt 2>&1 || true
+          docker logs video > logs.txt 2>&1 || true
           echo "::notice title=container log::$(tail -c 900 logs.txt | tr '\n' ' ')"
       - uses: actions/upload-artifact@v4
         with:
