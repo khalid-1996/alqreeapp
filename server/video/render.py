@@ -60,7 +60,7 @@ def wamda_for(content, day):
 
 def font_size(text):
     n = len(text)
-    return 96 if n <= 50 else 84 if n <= 90 else 72 if n <= 140 else 60
+    return 96 if n <= 50 else 84 if n <= 90 else 72 if n <= 140 else 60 if n <= 200 else 52 if n <= 250 else 46
 
 
 def render(kind, item, out):

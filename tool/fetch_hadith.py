@@ -7,6 +7,7 @@ Rules (enforced here, not by hand):
   - stands on its own: not an answer to a question, from reminder categories
     (virtues, character, manners, heart-softeners, remembrance, prayer, charity, fasting, Quran),
     never from rulings that need context (menstruation, penalties, inheritance, war, dreams…)
+  - shown in full (narrator, context and the saying), checked against Bukhari's wording
   - short enough for a notification, a widget and a video (MIN_CHARS..MAX_CHARS)
   - found in Sahih al-Bukhari with the same wording; the source shows its Bukhari number
     (matched against the full Arabic text of Sahih al-Bukhari, fawazahmed0/hadith-api)
@@ -64,6 +65,9 @@ def tokens(s):
 
 
 BUKHARI = {}  # word triple -> Bukhari hadith numbers
+BUKHARI_GRAMS = {}  # Bukhari hadith number -> its word triples
+MAX_FULL_CHARS = 300  # the whole narration as shown: narrator, context and the Prophet's words
+BUKHARI_MIN_FULL_MATCH = 0.5  # the narration around the saying may differ a little from Bukhari's
 
 
 def load_bukhari():
@@ -72,8 +76,10 @@ def load_bukhari():
         data = json.loads(r.read().decode('utf-8'))
     for h in data['hadiths']:
         w = tokens(h["text"])
-        for i in range(len(w) - 2):
-            BUKHARI.setdefault(tuple(w[i:i + 3]), set()).add(int(h['hadithnumber']))
+        grams = {tuple(w[i:i + 3]) for i in range(len(w) - 2)}
+        BUKHARI_GRAMS[int(h['hadithnumber'])] = grams
+        for g in grams:
+            BUKHARI.setdefault(g, set()).add(int(h['hadithnumber']))
     print('Sahih al-Bukhari hadiths:', len(data['hadiths']))
 
 
@@ -86,6 +92,14 @@ def bukhari_number(text):
         return None
     n, k = min(hits.items(), key=lambda x: (-x[1], x[0]))
     return n if k / len(grams) >= BUKHARI_MIN_MATCH else None
+
+
+def share_in(text, number):
+    """Share of the text's word triples found in that Bukhari hadith."""
+    w = tokens(text)
+    grams = [tuple(w[i:i + 3]) for i in range(len(w) - 2)]
+    have = BUKHARI_GRAMS.get(number, set())
+    return sum(g in have for g in grams) / len(grams) if grams else 0
 
 
 PARENT = {}  # category id -> parent id, filled by all_ids()
@@ -229,8 +243,14 @@ def candidate(h):
     number = bukhari_number(words)
     if number is None:
         return reject('not in Bukhari with this wording')
+    # Shown in full: the narrator, the context and the Prophet's words.
+    text = re.sub(r'\s+', ' ', full).strip()
+    if len(text) > MAX_FULL_CHARS:
+        return reject('full narration too long')
+    if share_in(text, number) < BUKHARI_MIN_FULL_MATCH:
+        return reject('full narration not in Bukhari wording')
     hid = str(h['id'])
-    return kind, {'text': f'«{words}»', 'source': f'صحيح البخاري ({number}) · متفق عليه', 'bukhari': number,
+    return kind, {'text': text, 'quote': f'«{words}»', 'source': f'صحيح البخاري ({number}) · متفق عليه', 'bukhari': number,
                   'id': hid, 'url': PAGE_URL.format(hid)}
 
 
