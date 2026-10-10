@@ -52,8 +52,16 @@ def bare(s):
     return ''.join(ch for ch in s if unicodedata.category(ch) != 'Mn')
 
 
+PARENT = {}  # category id -> parent id, filled by all_ids()
+
+
 def all_ids():
     cats = get('categories/list')
+    for c in cats:
+        try:
+            PARENT[int(c['id'])] = int(c['parent_id']) if c.get('parent_id') not in (None, '', '0') else None
+        except (TypeError, ValueError):
+            pass
     roots = [c['id'] for c in cats if c.get('parent_id') in (None, '', '0')]
     ids = set()
     for cid in roots:
@@ -92,7 +100,7 @@ REMINDER = {
     338, 340, 341,                                      # محاسن الإسلام، حقوق الإنسان والحيوان
     441, 457, 469, 482, 501, 511, 513,                  # فضل الوضوء والصلاة والجماعة والتطوع والزكاة والصدقة والصيام
 }
-DUA = {301, 302, 307, 313}                              # أذكار الصباح والمساء، المطلقة، الشدة، الأدعية المأثورة
+DUA = {268, 301, 302, 307, 313}  # فقه الأدعية والأذكار وفروعه                              # أذكار الصباح والمساء، المطلقة، الشدة، الأدعية المأثورة
 FRIDAY = {472, 477, 478, 480}                           # صلاة الجمعة وفضل يومها وأحكامها
 NEVER = {                                               # need context or are not for a public daily feed
     123, 127, 128, 139, 191, 192, 195, 196, 197, 198, 199, 205, 219, 220, 224, 225, 226, 227, 228, 230,
@@ -104,13 +112,17 @@ REPLY_STARTS = ('لا،', 'لا ', 'نعم', 'بلى', 'بل ')
 
 
 def categories(h):
+    """The hadith's categories and all their parent sections (the API lists only the most specific one)."""
     out = set()
     for c in h.get('categories') or []:
         cid = c.get('id') if isinstance(c, dict) else c
         try:
-            out.add(int(cid))
+            cid = int(cid)
         except (TypeError, ValueError):
-            pass
+            continue
+        while cid is not None and cid not in out:
+            out.add(cid)
+            cid = PARENT.get(cid)
     return out
 
 
