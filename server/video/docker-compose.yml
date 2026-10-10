@@ -1,0 +1,22 @@
+# Portainer stack: Stacks > Add stack > Repository
+#   Repository URL: https://github.com/khalid-1996/alqreeapp   Compose path: server/video/docker-compose.yml
+# or paste this file in the web editor (it builds from the GitHub repo directly).
+services:
+  alqaree-video:
+    build:
+      context: https://github.com/khalid-1996/alqreeapp.git#main
+      dockerfile: server/video/Dockerfile
+    image: alqaree-video:latest
+    container_name: alqaree-video
+    restart: unless-stopped
+    environment:
+      TZ: Asia/Dubai
+      RENDER_AT: "05:00"          # renders today + tomorrow every day at this time
+      KEEP_DAYS: "14"
+      # Where the app's content lives (switch to your own server if the repo goes private):
+      CONTENT_URL: https://cdn.jsdelivr.net/gh/khalid-1996/alqreeapp@main/assets/data/wamdat.json
+      # PUBLIC_BASE: https://wamda.khalid96.net   # only if TikTok must pull the files from a public URL
+    volumes:
+      - /DATA/AppData/alqaree-video:/out
+    ports:
+      - "8090:8090"
