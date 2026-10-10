@@ -101,6 +101,7 @@ class LocalContent {
     }
 
     wamdat = {for (final t in WamdaType.values) t: parse(t.name, t)};
+    _mixed = null;
     friday = parse('friday', WamdaType.hadith);
   }
 
@@ -112,15 +113,41 @@ class LocalContent {
   /// Days since epoch for the local calendar date. The widgets use the same formula.
   static int dayIndex(DateTime d) => DateTime.utc(d.year, d.month, d.day).millisecondsSinceEpoch ~/ 86400000;
 
-  /// Same ومضة for everyone on the same day: hadith, then dua, then ayah.
-  static Wamda wamdaFor(DateTime day) {
-    final i = dayIndex(day);
-    final type = WamdaType.values[i % 3];
-    final list = wamdat[type] ?? const [];
-    if (list.isEmpty) {
-      return const Wamda(type: WamdaType.dua, index: 0, text: '«اللهم إني أسألك علمًا نافعًا، ورزقًا طيبًا، وعملًا متقبلًا»', source: 'رواه ابن ماجه');
+  /// 32-bit FNV-1a of an ASCII key such as "hadith:12", then the murmur3 finalizer so close keys spread out.
+  static int mixRank(String key) {
+    var h = 0x811c9dc5;
+    for (final c in key.codeUnits) {
+      h = ((h ^ c) * 0x01000193) & 0xffffffff;
     }
-    return list[(i ~/ 3) % list.length];
+    h ^= h >> 16;
+    h = (h * 0x85ebca6b) & 0xffffffff;
+    h ^= h >> 13;
+    h = (h * 0xc2b2ae35) & 0xffffffff;
+    return h ^ (h >> 16);
+  }
+
+  static List<Wamda>? _mixed;
+
+  /// Hadiths, duas and ayahs in one shuffled order: sorted by mixRank("type:index").
+  static List<Wamda> get mixed => _mixed ??= () {
+        String k(Wamda w) => '${w.type.name}:${w.index}';
+        final pool = [for (final t in WamdaType.values) ...?wamdat[t]];
+        pool.sort((a, b) {
+          final c = mixRank(k(a)).compareTo(mixRank(k(b)));
+          return c != 0 ? c : k(a).compareTo(k(b));
+        });
+        return pool;
+      }();
+
+  /// Same ومضة for everyone on the same day, hadiths, duas and ayahs mixed at random;
+  /// nothing repeats until the whole pool has been shown. Widgets and the video renderer
+  /// use the same formula: mixed[dayIndex mod pool size].
+  static Wamda wamdaFor(DateTime day) {
+    final pool = mixed;
+    if (pool.isEmpty) {
+      return const Wamda(type: WamdaType.ayah, index: 0, text: '﴿رَبَّنَآ ءَاتِنَا فِى ٱلدُّنْيَا حَسَنَةً وَفِى ٱلْءَاخِرَةِ حَسَنَةً وَقِنَا عَذَابَ ٱلنَّارِ﴾', source: 'سورة البقرة · 201');
+    }
+    return pool[dayIndex(day) % pool.length];
   }
 
   /// A different Friday text each week.

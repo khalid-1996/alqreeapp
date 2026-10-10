@@ -50,12 +50,26 @@ object WidgetContent {
         } catch (e: Exception) {
         }
         val json = asset(context, "wamdat.json") ?: return null
-        val i = dayIndex()
-        val type = wamdaTypes[(i % 3).toInt()]
-        val list = json.optJSONArray(type) ?: return null
-        if (list.length() == 0) return null
-        val o = list.getJSONObject(((i / 3) % list.length()).toInt())
+        // Same formula as LocalContent.wamdaFor: hadith + dua + ayah sorted by FNV-1a("type:index").
+        val pool = mutableListOf<Triple<Long, String, Pair<String, JSONObject>>>()
+        for (t in wamdaTypes) {
+            val a = json.optJSONArray(t) ?: continue
+            for (k in 0 until a.length()) pool.add(Triple(mixRank("$t:$k"), "$t:$k", t to a.getJSONObject(k)))
+        }
+        if (pool.isEmpty()) return null
+        pool.sortWith(compareBy({ it.first }, { it.second }))
+        val (type, o) = pool[(dayIndex() % pool.size).toInt()].third
         return (wamdaLabels[type] ?: "") to Item(type, o.optString("text"), o.optString("source"))
+    }
+
+    fun mixRank(key: String): Long {
+        var h = 0x811c9dc5L
+        for (c in key) h = ((h xor c.code.toLong()) * 0x01000193L) and 0xffffffffL
+        h = h xor (h ushr 16)
+        h = (h * 0x85ebca6bL) and 0xffffffffL
+        h = h xor (h ushr 13)
+        h = (h * 0xc2b2ae35L) and 0xffffffffL
+        return h xor (h ushr 16)
     }
 
     fun isEvening(): Boolean {

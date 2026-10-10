@@ -39,12 +39,13 @@ void main() {
     }
   });
 
-  test('wamda is stable within a day and rotates hadith, dua, ayah', () {
+  test('wamda is stable within a day and mixes hadith, dua, ayah', () {
     final a = LocalContent.wamdaFor(DateTime(2026, 10, 8, 1));
     final b = LocalContent.wamdaFor(DateTime(2026, 10, 8, 23));
     expect(a.key, b.key);
-    final types = {for (var d = 0; d < 3; d++) LocalContent.wamdaFor(DateTime(2026, 10, 8 + d)).type};
+    final types = {for (var d = 0; d < 30; d++) LocalContent.wamdaFor(DateTime(2026, 10, 8 + d)).type};
     expect(types, WamdaType.values.toSet());
+    expect(LocalContent.mixRank('hadith:0'), 0x47f98b5c, reason: 'same FNV-1a as the widgets and the video');
   });
 
   test('positions format as mm:ss', () {

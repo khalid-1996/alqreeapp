@@ -65,10 +65,25 @@ enum WidgetContent {
         let i = dayIndex(date)
         let types = ["hadith", "dua", "ayah"]
         let labels = ["hadith": "حديث", "dua": "دعاء", "ayah": "آية"]
-        let type = types[i % 3]
-        guard let list = json[type] as? [[String: Any]], !list.isEmpty else { return nil }
-        let o = list[(i / 3) % list.count]
+        // Same formula as LocalContent.wamdaFor: hadith + dua + ayah sorted by FNV-1a("type:index").
+        var pool: [(UInt32, String, String, [String: Any])] = []
+        for t in types {
+            for (k, o) in (json[t] as? [[String: Any]] ?? []).enumerated() { pool.append((mixRank("\(t):\(k)"), "\(t):\(k)", t, o)) }
+        }
+        guard !pool.isEmpty else { return nil }
+        pool.sort { $0.0 != $1.0 ? $0.0 < $1.0 : $0.1 < $1.1 }
+        let (_, _, type, o) = pool[i % pool.count]
         return (labels[type] ?? "", ContentItem(id: type, text: o["text"] as? String ?? "", source: o["source"] as? String ?? "", count: 1))
+    }
+
+    static func mixRank(_ key: String) -> UInt32 {
+        var h: UInt32 = 0x811c9dc5
+        for b in key.utf8 { h = (h ^ UInt32(b)) &* 0x01000193 }
+        h ^= h >> 16
+        h = h &* 0x85ebca6b
+        h ^= h >> 13
+        h = h &* 0xc2b2ae35
+        return h ^ (h >> 16)
     }
 
     static func isEvening(_ date: Date = Date()) -> Bool {

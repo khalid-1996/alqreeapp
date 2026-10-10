@@ -51,11 +51,23 @@ def load_content(src):
 
 
 def wamda_for(content, day):
-    """Same formula as LocalContent.wamdaFor in the app."""
+    """Same formula as LocalContent.wamdaFor in the app: all items shuffled by FNV-1a("type:index")."""
     i = (day - dt.date(1970, 1, 1)).days
-    kind = ['hadith', 'dua', 'ayah'][i % 3]
-    items = content[kind]
-    return kind, items[(i // 3) % len(items)]
+    pool = sorted(((mix_rank(f'{k}:{j}'), f'{k}:{j}', k, x) for k in ('hadith', 'dua', 'ayah')
+                   for j, x in enumerate(content[k])), key=lambda p: (p[0], p[1]))
+    _, _, kind, item = pool[i % len(pool)]
+    return kind, item
+
+
+def mix_rank(key):
+    h = 0x811c9dc5
+    for b in key.encode():
+        h = ((h ^ b) * 0x01000193) & 0xffffffff
+    h ^= h >> 16
+    h = (h * 0x85ebca6b) & 0xffffffff
+    h ^= h >> 13
+    h = (h * 0xc2b2ae35) & 0xffffffff
+    return h ^ (h >> 16)
 
 
 def font_size(text):
