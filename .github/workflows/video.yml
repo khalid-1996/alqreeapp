@@ -14,6 +14,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Build image
+        timeout-minutes: 15
         run: docker build -f server/video/Dockerfile -t alqaree-video .
       - name: Render a sample inside the image
         shell: bash

@@ -2,7 +2,7 @@
 #   docker build -f server/video/Dockerfile -t alqaree-video .
 FROM mcr.microsoft.com/playwright/python:v1.47.0-jammy
 
-RUN apt-get update \
+RUN export DEBIAN_FRONTEND=noninteractive && apt-get update \
  && apt-get install -y --no-install-recommends ffmpeg tzdata \
  && rm -rf /var/lib/apt/lists/*
 
