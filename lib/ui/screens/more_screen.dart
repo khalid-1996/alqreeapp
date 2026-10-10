@@ -190,7 +190,7 @@ class InfoScreen extends StatelessWidget {
               en ? 'HadeethEnc — Encyclopedia of Translated Prophetic Hadiths' : 'موسوعة الأحاديث النبوية (HadeethEnc)',
               en
                   ? 'Every hadith in the app is taken from the HadeethEnc API and only those graded sahih and agreed upon (narrated by both al-Bukhari and Muslim) are shown, quoted verbatim. Each one links to its page with the full narration and explanation.'
-                  : 'كل الأحاديث في التطبيق مأخوذة من واجهة موسوعة الأحاديث النبوية، ولا نعرض إلا الصحيح المتفق عليه (رواه البخاري ومسلم)، منقولًا كما هو. ولكل حديث رابط لصفحته فيها الرواية كاملة وشرحها.',
+                  : 'كل الأحاديث في التطبيق مأخوذة من واجهة موسوعة الأحاديث النبوية، ولا نعرض إلا الصحيح المتفق عليه (رواه البخاري ومسلم)، منقولًا كما هو بلفظ صحيح البخاري ومع رقمه فيه. ولكل حديث رابط لصفحته فيها الرواية كاملة وشرحها.',
               'https://hadeethenc.com'
             ),
             (

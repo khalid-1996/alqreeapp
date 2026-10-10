@@ -8,6 +8,8 @@ Rules (enforced here, not by hand):
     (virtues, character, manners, heart-softeners, remembrance, prayer, charity, fasting, Quran),
     never from rulings that need context (menstruation, penalties, inheritance, war, dreams…)
   - short enough for a notification, a widget and a video (MIN_CHARS..MAX_CHARS)
+  - found in Sahih al-Bukhari with the same wording; the source shows its Bukhari number
+    (matched against the full Arabic text of Sahih al-Bukhari, fawazahmed0/hadith-api)
 Duas come only from the "supplications" and adhkar categories; Friday from the Friday categories.
 Quranic items (ayahs, Quranic duas and Friday ayahs, verbatim from Tanzil) are kept as they are.
 
@@ -15,6 +17,7 @@ Run:  python3 tool/fetch_hadith.py           (writes assets/data/wamdat.json)
       python3 tool/fetch_hadith.py --check   (fetch and report only)
 """
 import hashlib
+from collections import Counter
 import json
 import re
 import sys
@@ -33,6 +36,8 @@ MIN_CHARS = 25
 MIN_HADITH = 30
 MIN_DUA_FROM_API = 0  # Quranic duas always cover this list
 MAX_DUA_CHARS = 220
+BUKHARI_URL = 'https://raw.githubusercontent.com/fawazahmed0/hadith-api/1/editions/ara-bukhari.min.json'
+BUKHARI_MIN_MATCH = 0.6  # share of the hadith's word triples found in one Bukhari hadith
 
 
 def get(path, **params):
@@ -51,6 +56,36 @@ def get(path, **params):
 def bare(s):
     s = unicodedata.normalize('NFD', s)
     return ''.join(ch for ch in s if unicodedata.category(ch) != 'Mn')
+
+
+def tokens(s):
+    s = re.sub('[أإآٱ]', 'ا', bare(s)).replace('ى', 'ي').replace('ة', 'ه').replace('ؤ', 'و').replace('ئ', 'ي')
+    return re.sub(r'[^\u0621-\u064A ]', ' ', s).split()
+
+
+BUKHARI = {}  # word triple -> Bukhari hadith numbers
+
+
+def load_bukhari():
+    req = urllib.request.Request(BUKHARI_URL, headers={'User-Agent': 'AlqareeApp-content/1.0'})
+    with urllib.request.urlopen(req, timeout=120) as r:
+        data = json.loads(r.read().decode('utf-8'))
+    for h in data['hadiths']:
+        w = tokens(h["text"])
+        for i in range(len(w) - 2):
+            BUKHARI.setdefault(tuple(w[i:i + 3]), set()).add(int(h['hadithnumber']))
+    print('Sahih al-Bukhari hadiths:', len(data['hadiths']))
+
+
+def bukhari_number(text):
+    """The Bukhari hadith that holds this wording, or None."""
+    w = tokens(text)
+    grams = [tuple(w[i:i + 3]) for i in range(len(w) - 2)]
+    hits = Counter(n for g in grams for n in BUKHARI.get(g, ()))
+    if not grams or not hits:
+        return None
+    n, k = min(hits.items(), key=lambda x: (-x[1], x[0]))
+    return n if k / len(grams) >= BUKHARI_MIN_MATCH else None
 
 
 PARENT = {}  # category id -> parent id, filled by all_ids()
@@ -140,7 +175,6 @@ def categories(h):
     return out
 
 
-from collections import Counter
 REJECTED = Counter()
 
 
@@ -192,8 +226,12 @@ def candidate(h):
         return reject('length')
     if kind == 'dua' and not bare(words).startswith(('اللهم', 'رب', 'يا ')):
         kind = 'hadith'  # e.g. the virtue of a dhikr: a reminder, not a supplication
+    number = bukhari_number(words)
+    if number is None:
+        return reject('not in Bukhari with this wording')
     hid = str(h['id'])
-    return kind, {'text': f'«{words}»', 'source': attribution, 'id': hid, 'url': PAGE_URL.format(hid)}
+    return kind, {'text': f'«{words}»', 'source': f'صحيح البخاري ({number}) · متفق عليه', 'bukhari': number,
+                  'id': hid, 'url': PAGE_URL.format(hid)}
 
 
 def letters(s):
@@ -220,6 +258,7 @@ def spread(items):
 
 def main():
     check = '--check' in sys.argv
+    load_bukhari()
     ids = all_ids()
     print('hadiths listed:', len(ids))
     with ThreadPoolExecutor(max_workers=4) as pool:
@@ -258,7 +297,7 @@ def main():
     out = {
         'meta': {
             'version': max(3, int(current.get('meta', {}).get('version', 0))),
-            'hadith_source': 'HadeethEnc API (hadeethenc.com): grade صحيح, attribution متفق عليه, quoted verbatim',
+            'hadith_source': 'HadeethEnc API (hadeethenc.com): grade صحيح, attribution متفق عليه, quoted verbatim; numbered from Sahih al-Bukhari',
             'quran_text': current.get('meta', {}).get('quran_text', ''),
             'updated': time.strftime('%Y-%m-%d'),
         },
