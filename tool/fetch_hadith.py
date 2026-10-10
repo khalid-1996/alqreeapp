@@ -114,17 +114,26 @@ def categories(h):
     return out
 
 
+from collections import Counter
+REJECTED = Counter()
+
+
+def reject(reason):
+    REJECTED[reason] += 1
+    return None
+
+
 def candidate(h):
     """Returns (kind, item) with kind in hadith/dua/friday, or None if any rule fails."""
     if not h:
-        return None
+        return reject('fetch failed')
     grade = (h.get('grade') or '').strip()
     attribution = (h.get('attribution') or '').strip().rstrip('.').strip()
     if not grade.startswith('صحيح') or not attribution.startswith('متفق عليه'):
-        return None
+        return reject('not agreed upon')
     cats = categories(h)
     if cats & NEVER:
-        return None
+        return reject('excluded category')
     if cats & FRIDAY:
         kind = 'friday'
     elif cats & DUA:
@@ -132,23 +141,23 @@ def candidate(h):
     elif cats & REMINDER:
         kind = 'hadith'
     else:
-        return None
+        return reject('not a reminder category')
 
     full = (h.get('hadeeth') or '').strip()
     quotes = QUOTE.findall(full)
     if len(quotes) != 1:  # several quotations or none: not a single saying
-        return None
+        return reject('not one quotation')
     words = quotes[0].strip()
     before = bare(full.split('«', 1)[0]).strip()
     tail = before[-60:]
     # The Prophet ﷺ is the speaker: named and introduced right before the quotation.
     if not any(p in tail for p in PROPHET) or not any(v in tail for v in SAYS):
-        return None
+        return reject('speaker not the Prophet')
     # An answer to a question does not stand on its own.
     if '؟' in before or any(bare(words).startswith(r) for r in REPLY_STARTS):
-        return None
+        return reject('a reply')
     if not (MIN_CHARS <= len(words) <= MAX_CHARS):
-        return None
+        return reject('length')
     if kind == 'dua' and not bare(words).startswith(('اللهم', 'رب', 'يا ')):
         kind = 'hadith'  # e.g. the virtue of a dhikr: a reminder, not a supplication
     hid = str(h['id'])
@@ -166,8 +175,11 @@ def main():
     print('hadiths listed:', len(ids))
     with ThreadPoolExecutor(max_workers=4) as pool:
         details = list(pool.map(fetch_one, ids))
+    sample = next((d for d in details if d), {})
+    print(f"::notice title=categories field::{json.dumps(sample.get('categories'), ensure_ascii=False)[:200]}")
     found = [c for c in map(candidate, details) if c]
     print('passed every rule:', len(found))
+    print('::notice title=rejected::' + ', '.join(f'{k}: {v}' for k, v in REJECTED.most_common()))
     hadith = [item for kind, item in found if kind == 'hadith']
     duas = [item for kind, item in found if kind == 'dua']
     friday = [item for kind, item in found if kind == 'friday']
@@ -187,6 +199,7 @@ def main():
         if i < len(quran_duas):
             merged.append(quran_duas[i])
 
+    print(f'::notice title=selected::hadith {len(hadith)}, duas {len(api_duas)}, friday {len(friday)} of {len(ids)}')
     print(f'hadith {len(hadith)}, duas from API {len(api_duas)} (+{len(quran_duas)} Quranic), friday {len(friday)} (+{len(quran_friday)} ayahs)')
     if len(hadith) < MIN_HADITH or len(api_duas) < MIN_DUA_FROM_API:
         sys.exit('too few results: keeping the current file')

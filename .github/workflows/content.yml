@@ -29,7 +29,10 @@ jobs:
           python-version: '3.12'
 
       - name: Fetch from HadeethEnc
-        run: python3 tool/fetch_hadith.py 2>&1 | tee fetch.log
+        shell: bash
+        run: |
+          set -o pipefail
+          python3 tool/fetch_hadith.py 2>&1 | tee fetch.log
 
       - name: Commit if changed
         run: |
