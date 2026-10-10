@@ -250,7 +250,7 @@ def candidate(h):
     if share_in(text, number) < BUKHARI_MIN_FULL_MATCH:
         return reject('full narration not in Bukhari wording')
     hid = str(h['id'])
-    return kind, {'text': text, 'quote': f'«{words}»', 'source': f'صحيح البخاري ({number}) · متفق عليه', 'bukhari': number,
+    return kind, {'text': text, 'quote': f'«{words}»', 'source': f'صحيح البخاري {number}', 'bukhari': number,
                   'id': hid, 'url': PAGE_URL.format(hid)}
 
 

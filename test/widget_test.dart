@@ -67,7 +67,7 @@ void main() {
 
   test('every hadith is agreed upon (متفق عليه), every other item is Quran', () {
     bool isQuran(Wamda w) => w.source.startsWith('سورة') && w.text.startsWith('﴿');
-    bool agreedUpon(Wamda w) => w.source.startsWith('صحيح البخاري (') && w.source.contains('متفق عليه') && w.text.contains('«') && (w.url ?? '').contains('hadeethenc.com');
+    bool agreedUpon(Wamda w) => RegExp(r'^صحيح البخاري \d+$').hasMatch(w.source) && w.text.contains('«') && (w.url ?? '').contains('hadeethenc.com');
     for (final w in LocalContent.wamdat[WamdaType.hadith]!) {
       expect(agreedUpon(w), isTrue, reason: 'hadith not agreed upon: ${w.text} (${w.source})');
     }
