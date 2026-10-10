@@ -2,9 +2,13 @@
 
 Rules (enforced here, not by hand):
   - grade is "صحيح" and attribution starts with "متفق عليه" (narrated by both al-Bukhari and Muslim)
-  - the Prophet's words are the single «…» quotation in the API text, copied verbatim
-  - short enough for a notification, a widget and a video (MAX_CHARS)
-Hadiths whose words begin "اللهم" or "رب" become duas; ones mentioning الجمعة go to Friday.
+  - the Prophet's own words: the single «…» quotation, introduced right before by
+    "قال رسول الله ﷺ" / "النبي ﷺ يقول" (not a Companion's words), copied verbatim
+  - stands on its own: not an answer to a question, from reminder categories
+    (virtues, character, manners, heart-softeners, remembrance, prayer, charity, fasting, Quran),
+    never from rulings that need context (menstruation, penalties, inheritance, war, dreams…)
+  - short enough for a notification, a widget and a video (MIN_CHARS..MAX_CHARS)
+Duas come only from the "supplications" and adhkar categories; Friday from the Friday categories.
 Quranic items (ayahs, Quranic duas and Friday ayahs, verbatim from Tanzil) are kept as they are.
 
 Run:  python3 tool/fetch_hadith.py           (writes assets/data/wamdat.json)
@@ -25,7 +29,7 @@ API = 'https://hadeethenc.com/api/v1'
 PAGE_URL = 'https://hadeethenc.com/ar/browse/hadith/{}'
 OUT = Path(__file__).resolve().parent.parent / 'assets' / 'data' / 'wamdat.json'
 MAX_CHARS = 150
-MIN_CHARS = 12
+MIN_CHARS = 25
 MIN_HADITH = 30
 MIN_DUA_FROM_API = 3
 
@@ -76,28 +80,79 @@ def fetch_one(hid):
 
 QUOTE = re.compile(r'«([^«»]+)»')
 
+# HadeethEnc category ids (GET /categories/list/?language=ar).
+REMINDER = {
+    12, 39, 40,                                         # فضائل القرآن
+    92, 94, 95,                                         # زيادة الإيمان، شعب الإيمان، الإحسان
+    265, 270, 271, 272, 273, 274, 277, 278, 279, 280, 281,  # الفضائل
+    266, 282, 283,                                      # الأخلاق الحميدة والذميمة
+    267, 284, 286, 287, 291, 295, 297,                  # الآداب الشرعية
+    269, 314, 315, 316, 317, 318, 319, 320, 321, 322, 324,  # الرقائق والمواعظ
+    300, 302, 312,                                      # فوائد الذكر، الأذكار المطلقة، أسباب الإجابة
+    338, 340, 341,                                      # محاسن الإسلام، حقوق الإنسان والحيوان
+    441, 457, 469, 482, 501, 511, 513,                  # فضل الوضوء والصلاة والجماعة والتطوع والزكاة والصدقة والصيام
+}
+DUA = {301, 302, 307, 313}                              # أذكار الصباح والمساء، المطلقة، الشدة، الأدعية المأثورة
+FRIDAY = {472, 477, 478, 480}                           # صلاة الجمعة وفضل يومها وأحكامها
+NEVER = {                                               # need context or are not for a public daily feed
+    123, 127, 128, 139, 191, 192, 195, 196, 197, 198, 199, 205, 219, 220, 224, 225, 226, 227, 228, 230,
+    275, 276, 294, 403, 440,
+}
+PROPHET = ('رسول الله', 'النبي', 'ﷺ', 'صلى الله عليه وسلم')
+SAYS = ('قال', 'يقول', 'مرفوعا', 'مرفوعًا')
+REPLY_STARTS = ('لا،', 'لا ', 'نعم', 'بلى', 'بل ')
+
+
+def categories(h):
+    out = set()
+    for c in h.get('categories') or []:
+        cid = c.get('id') if isinstance(c, dict) else c
+        try:
+            out.add(int(cid))
+        except (TypeError, ValueError):
+            pass
+    return out
+
 
 def candidate(h):
-    """Returns (text, source, id, url) or None if the hadith does not meet every rule."""
+    """Returns (kind, item) with kind in hadith/dua/friday, or None if any rule fails."""
     if not h:
         return None
     grade = (h.get('grade') or '').strip()
     attribution = (h.get('attribution') or '').strip().rstrip('.').strip()
     if not grade.startswith('صحيح') or not attribution.startswith('متفق عليه'):
         return None
+    cats = categories(h)
+    if cats & NEVER:
+        return None
+    if cats & FRIDAY:
+        kind = 'friday'
+    elif cats & DUA:
+        kind = 'dua'
+    elif cats & REMINDER:
+        kind = 'hadith'
+    else:
+        return None
+
     full = (h.get('hadeeth') or '').strip()
     quotes = QUOTE.findall(full)
-    if len(quotes) != 1:  # several quotations or none: not a single saying, skip
+    if len(quotes) != 1:  # several quotations or none: not a single saying
         return None
     words = quotes[0].strip()
-    before = bare(full.split('«', 1)[0])
-    # The quotation must be attributed to the Prophet ﷺ.
-    if not any(k in before for k in ('رسول الله', 'النبي', 'ﷺ', 'صلى الله عليه وسلم')):
+    before = bare(full.split('«', 1)[0]).strip()
+    tail = before[-60:]
+    # The Prophet ﷺ is the speaker: named and introduced right before the quotation.
+    if not any(p in tail for p in PROPHET) or not any(v in tail for v in SAYS):
+        return None
+    # An answer to a question does not stand on its own.
+    if '؟' in before or any(bare(words).startswith(r) for r in REPLY_STARTS):
         return None
     if not (MIN_CHARS <= len(words) <= MAX_CHARS):
         return None
+    if kind == 'dua' and not bare(words).startswith(('اللهم', 'رب', 'يا ')):
+        kind = 'hadith'  # e.g. the virtue of a dhikr: a reminder, not a supplication
     hid = str(h['id'])
-    return {'text': f'«{words}»', 'source': attribution, 'id': hid, 'url': PAGE_URL.format(hid)}
+    return kind, {'text': f'«{words}»', 'source': attribution, 'id': hid, 'url': PAGE_URL.format(hid)}
 
 
 def spread(items):
@@ -112,17 +167,10 @@ def main():
     with ThreadPoolExecutor(max_workers=4) as pool:
         details = list(pool.map(fetch_one, ids))
     found = [c for c in map(candidate, details) if c]
-    print('agreed-upon and short:', len(found))
-
-    hadith, duas, friday = [], [], []
-    for c in found:
-        b = bare(c['text'].strip('«» '))
-        if 'الجمعة' in b:
-            friday.append(c)
-        elif b.startswith('اللهم') or b.startswith('رب'):
-            duas.append(c)
-        else:
-            hadith.append(c)
+    print('passed every rule:', len(found))
+    hadith = [item for kind, item in found if kind == 'hadith']
+    duas = [item for kind, item in found if kind == 'dua']
+    friday = [item for kind, item in found if kind == 'friday']
 
     current = json.loads(OUT.read_text())
     is_quran = lambda x: x.get('source', '').startswith('سورة')
