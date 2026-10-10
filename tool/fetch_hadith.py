@@ -31,7 +31,8 @@ OUT = Path(__file__).resolve().parent.parent / 'assets' / 'data' / 'wamdat.json'
 MAX_CHARS = 150
 MIN_CHARS = 25
 MIN_HADITH = 30
-MIN_DUA_FROM_API = 3
+MIN_DUA_FROM_API = 0  # Quranic duas always cover this list
+MAX_DUA_CHARS = 220
 
 
 def get(path, **params):
@@ -168,7 +169,8 @@ def candidate(h):
     # An answer to a question does not stand on its own.
     if '؟' in before or any(bare(words).startswith(r) for r in REPLY_STARTS):
         return reject('a reply')
-    if not (MIN_CHARS <= len(words) <= MAX_CHARS):
+    limit = MAX_DUA_CHARS if kind == 'dua' else MAX_CHARS
+    if not (MIN_CHARS <= len(words) <= limit):
         return reject('length')
     if kind == 'dua' and not bare(words).startswith(('اللهم', 'رب', 'يا ')):
         kind = 'hadith'  # e.g. the virtue of a dhikr: a reminder, not a supplication
