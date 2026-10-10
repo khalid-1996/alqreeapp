@@ -1,0 +1,45 @@
+name: Update hadith content
+
+# Pulls agreed-upon (متفق عليه) hadiths from the HadeethEnc API into assets/data/wamdat.json.
+# Installed apps pick the new file up within a week (via jsDelivr), with no new release.
+on:
+  schedule:
+    - cron: '17 2 * * 5'  # every Friday, 02:17 UTC
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['tool/fetch_hadith.py']
+
+permissions:
+  contents: write
+
+concurrency:
+  group: content
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Fetch from HadeethEnc
+        run: python3 tool/fetch_hadith.py 2>&1 | tee fetch.log
+
+      - name: Commit if changed
+        run: |
+          if git diff --quiet -- assets/data/wamdat.json; then
+            echo "No change."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/data/wamdat.json
+          git commit -m "content: update hadiths from HadeethEnc" -m "$(tail -n 5 fetch.log)"
+          git pull --rebase origin main
+          git push origin HEAD:main
