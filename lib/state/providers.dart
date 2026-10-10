@@ -83,13 +83,6 @@ final radiosProvider = FutureProvider<List<RadioStation>>(
   (ref) => ref.watch(repositoryProvider).radios(_lang(ref)),
 );
 
-final hadithOfDayProvider = FutureProvider<Hadith>((ref) async {
-  final repo = ref.watch(repositoryProvider);
-  final h = await repo.hadithOfDay(DateTime.now());
-  await repo.rememberLastHadith(h);
-  return h;
-});
-
 final wamdaOfDayProvider = Provider<Wamda>((ref) => LocalContent.wamdaFor(DateTime.now()));
 
 // ---------- Favorites ----------

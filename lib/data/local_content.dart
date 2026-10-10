@@ -90,7 +90,13 @@ class LocalContent {
       final raw = (j[key] as List?) ?? const [];
       return [
         for (var i = 0; i < raw.length; i++)
-          Wamda(type: type, index: i, text: '${(raw[i] as Map)['text']}'.trim(), source: '${(raw[i] as Map)['source']}'.trim()),
+          Wamda(
+            type: type,
+            index: i,
+            text: '${(raw[i] as Map)['text']}'.trim(),
+            source: '${(raw[i] as Map)['source']}'.trim(),
+            url: (raw[i] as Map)['url'] as String?,
+          ),
       ];
     }
 

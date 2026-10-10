@@ -54,7 +54,7 @@ void main() {
 
   test('content is long enough not to repeat for weeks, and valid', () {
     expect(LocalContent.wamdat[WamdaType.hadith]!.length, greaterThanOrEqualTo(30));
-    expect(LocalContent.wamdat[WamdaType.dua]!.length, greaterThanOrEqualTo(20));
+    expect(LocalContent.wamdat[WamdaType.dua]!.length, greaterThanOrEqualTo(15));
     expect(LocalContent.wamdat[WamdaType.ayah]!.length, greaterThanOrEqualTo(30));
     expect(LocalContent.friday, isNotEmpty);
     final seen = <String>{};
@@ -63,6 +63,20 @@ void main() {
     }
     expect(seen.length, 60, reason: 'no ومضة repeats within two months');
     expect(LocalContent.isValid({'hadith': [], 'dua': [], 'ayah': [], 'friday': []}), isFalse);
+  });
+
+  test('every hadith is agreed upon (متفق عليه), every other item is Quran', () {
+    bool isQuran(Wamda w) => w.source.startsWith('سورة') && w.text.startsWith('﴿');
+    bool agreedUpon(Wamda w) => w.source.startsWith('متفق عليه') && w.text.startsWith('«') && (w.url ?? '').contains('hadeethenc.com');
+    for (final w in LocalContent.wamdat[WamdaType.hadith]!) {
+      expect(agreedUpon(w), isTrue, reason: 'hadith not agreed upon: ${w.text} (${w.source})');
+    }
+    for (final w in LocalContent.wamdat[WamdaType.ayah]!) {
+      expect(isQuran(w), isTrue, reason: w.text);
+    }
+    for (final w in [...LocalContent.wamdat[WamdaType.dua]!, ...LocalContent.friday]) {
+      expect(isQuran(w) || agreedUpon(w), isTrue, reason: 'neither Quran nor agreed upon: ${w.text} (${w.source})');
+    }
   });
 
   test('friday text changes weekly, not daily', () {

@@ -111,6 +111,19 @@ PROPHET = ('رسول الله', 'النبي', 'ﷺ', 'صلى الله عليه �
 SAYS = ('قال', 'يقول', 'مرفوعا', 'مرفوعًا')
 REPLY_STARTS = ('لا،', 'لا ', 'نعم', 'بلى', 'بل ')
 
+# Editorial review (2026-10-10): authentic and agreed upon, but not for a daily feed read
+# without its explanation. Each id is still on HadeethEnc; it just isn't posted.
+EXCLUDE = {
+    # needs the story around it (who is addressed, what happened)
+    3728, 5734, 3688, 6178, 65062, 66096, 65355, 4932, 65703, 3014, 11206, 65711, 65753, 5142,
+    # a supplication for named people
+    3773, 5469,
+    # a ruling or a detail that needs a scholar's explanation
+    66111, 6141, 5442, 58112, 2986, 66278, 66277,
+    # easily misread on social media without the commentary
+    5830, 3184, 65998,
+}
+
 
 def categories(h):
     """The hadith's categories and all their parent sections (the API lists only the most specific one)."""
@@ -140,6 +153,8 @@ def candidate(h):
     """Returns (kind, item) with kind in hadith/dua/friday, or None if any rule fails."""
     if not h:
         return reject('fetch failed')
+    if int(h.get('id', 0)) in EXCLUDE:
+        return reject('editorial review')
     grade = (h.get('grade') or '').strip()
     attribution = (h.get('attribution') or '').strip().rstrip('.').strip()
     if not grade.startswith('صحيح') or not attribution.startswith('متفق عليه'):
@@ -169,6 +184,9 @@ def candidate(h):
     # An answer to a question does not stand on its own.
     if '؟' in before or any(bare(words).startswith(r) for r in REPLY_STARTS):
         return reject('a reply')
+    # A question or a sentence that continues an earlier one (فـ / وـ) needs its context.
+    if '؟' in words or bare(words)[:1] in ('ف', 'و'):
+        return reject('needs context')
     limit = MAX_DUA_CHARS if kind == 'dua' else MAX_CHARS
     if not (MIN_CHARS <= len(words) <= limit):
         return reject('length')
@@ -176,6 +194,23 @@ def candidate(h):
         kind = 'hadith'  # e.g. the virtue of a dhikr: a reminder, not a supplication
     hid = str(h['id'])
     return kind, {'text': f'«{words}»', 'source': attribution, 'id': hid, 'url': PAGE_URL.format(hid)}
+
+
+def letters(s):
+    return re.sub(r'[^\u0621-\u064A]', '', bare(s))
+
+
+def dedupe(items):
+    """Drops near-duplicates (the same saying in several narrations); keeps the shortest."""
+    from difflib import SequenceMatcher
+    kept = []
+    for it in sorted(items, key=lambda x: (len(x['text']), int(x['id']))):
+        a = letters(it['text'])
+        if any(SequenceMatcher(None, a, letters(k['text'])).ratio() > 0.7 for k in kept):
+            REJECTED['near duplicate'] += 1
+            continue
+        kept.append(it)
+    return kept
 
 
 def spread(items):
@@ -203,8 +238,9 @@ def main():
     quran_duas = [d for d in current['dua'] if is_quran(d)]
     quran_friday = [f for f in current['friday'] if is_quran(f)]
 
-    hadith = spread(hadith)
-    api_duas = spread(duas)
+    hadith = spread(dedupe(hadith))
+    api_duas = spread(dedupe(duas))
+    friday = dedupe(friday)
     # Alternate Quran and Sunnah duas.
     merged = []
     for i in range(max(len(quran_duas), len(api_duas))):
@@ -213,6 +249,7 @@ def main():
         if i < len(quran_duas):
             merged.append(quran_duas[i])
 
+    print('::notice title=rejected (final)::' + ', '.join(f'{k}: {v}' for k, v in REJECTED.most_common()))
     print(f'::notice title=selected::hadith {len(hadith)}, duas {len(api_duas)}, friday {len(friday)} of {len(ids)}')
     print(f'hadith {len(hadith)}, duas from API {len(api_duas)} (+{len(quran_duas)} Quranic), friday {len(friday)} (+{len(quran_friday)} ayahs)')
     if len(hadith) < MIN_HADITH or len(api_duas) < MIN_DUA_FROM_API:

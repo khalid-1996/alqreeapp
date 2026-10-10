@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/strings.dart';
 import '../../core/theme.dart';
@@ -94,6 +95,16 @@ class _WamdaScreenState extends ConsumerState<WamdaScreen> {
                 const Divider(color: AppColors.glassBorder),
                 const SizedBox(height: 6),
                 Text(w.source, style: const TextStyle(fontSize: 14, color: AppColors.soft)),
+                if (w.url != null)
+                  Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    child: TextButton.icon(
+                      style: TextButton.styleFrom(padding: EdgeInsets.zero, foregroundColor: AppColors.accent),
+                      onPressed: () => launchUrl(Uri.parse(w.url!), mode: LaunchMode.externalApplication),
+                      icon: const Icon(Icons.menu_book_outlined, size: 18),
+                      label: Text(s.readExplanation),
+                    ),
+                  ),
               ],
             ),
           ),

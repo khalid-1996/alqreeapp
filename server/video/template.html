@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<style>
+@font-face { font-family: Amiri; font-weight: 400; src: url(FONTS/amiri-arabic-400-normal.woff2); }
+@font-face { font-family: Amiri; font-weight: 700; src: url(FONTS/amiri-arabic-700-normal.woff2); }
+@font-face { font-family: Tajawal; font-weight: 400; src: url(FONTS/tajawal-arabic-400-normal.woff2); }
+@font-face { font-family: Tajawal; font-weight: 700; src: url(FONTS/tajawal-arabic-700-normal.woff2); }
+@font-face { font-family: Tajawal; font-weight: 800; src: url(FONTS/tajawal-arabic-800-normal.woff2); }
+html, body { margin: 0; width: 1080px; height: 1920px; overflow: hidden; background: #000A3A; }
+#stage { position: relative; width: 1080px; height: 1920px; overflow: hidden; background: #000A3A; font-family: Tajawal; color: #fff; }
+.glow { position: absolute; width: 1400px; height: 1400px; border-radius: 50%; filter: blur(40px); }
+#g1 { background: radial-gradient(circle, rgba(59,167,255,0.22) 0%, rgba(59,167,255,0) 60%); }
+#g2 { background: radial-gradient(circle, rgba(10,30,107,0.9) 0%, rgba(10,30,107,0) 62%); }
+.dot { position: absolute; width: 6px; height: 6px; border-radius: 50%; background: #fff; }
+#frame { position: absolute; left: 60px; right: 60px; top: 60px; bottom: 60px; border: 2px solid rgba(255,255,255,0.16); border-radius: 64px; }
+#content { position: absolute; left: 150px; right: 150px; top: 0; bottom: 260px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+#chip { display: flex; align-items: center; gap: 18px; padding: 18px 40px; border-radius: 999px; background: rgba(255,255,255,0.08); font-size: 40px; font-weight: 700; color: #3BA7FF; }
+#chip .type { color: #DDE3F7; font-weight: 400; }
+#chip .sep { width: 10px; height: 10px; border-radius: 50%; background: #3BA7FF; }
+#text { margin-top: 90px; font-family: Amiri; font-size: FONTSIZEpx; line-height: 1.75; }
+#text span { display: inline-block; }
+#line { margin-top: 70px; height: 4px; width: 120px; background: #3BA7FF; border-radius: 4px; }
+#source { margin-top: 36px; font-size: 44px; color: #DDE3F7; }
+#brand { position: absolute; left: 0; right: 0; bottom: 430px; display: flex; flex-direction: column; align-items: center; gap: 18px; }
+#brand img { width: 120px; height: 120px; }
+#brand .name { font-size: 64px; font-weight: 800; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div class="glow" id="g2"></div>
+  <div class="glow" id="g1"></div>
+  <div id="dots"></div>
+  <div id="frame"></div>
+  <div id="content">
+    <div id="chip"><span>ومضات اليوم</span><span class="sep"></span><span class="type">TYPE</span></div>
+    <div id="text">TEXT</div>
+    <div id="line"></div>
+    <div id="source">SOURCE</div>
+  </div>
+  <div id="brand">
+    <img src="LOGO" alt="">
+    <div class="name">القارئ</div>
+  </div>
+</div>
+<script>
+// Deterministic timeline: render(t) draws the frame at t seconds, so every export is identical.
+const clamp = (x) => Math.max(0, Math.min(1, x));
+const ease = (x) => 1 - Math.pow(1 - clamp(x), 3);
+const seg = (t, a, b) => ease((t - a) / (b - a));
+
+const words = document.getElementById('text').textContent.trim().split(/\s+/);
+document.getElementById('text').innerHTML = words.map(w => `<span>${w}</span>`).join(' ');
+const spans = [...document.querySelectorAll('#text span')];
+
+// Fixed, seeded particles.
+let seed = 7;
+const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+const dots = [];
+for (let i = 0; i < 34; i++) {
+  const d = document.createElement('div');
+  d.className = 'dot';
+  document.getElementById('dots').appendChild(d);
+  dots.push({ el: d, x: rnd() * 1080, y: rnd() * 1920, s: 0.4 + rnd() * 1.2, v: 8 + rnd() * 22, o: 0.06 + rnd() * 0.22, p: rnd() * 6.28 });
+}
+
+function render(t) {
+  // Slowly drifting light.
+  const g1 = document.getElementById('g1'), g2 = document.getElementById('g2');
+  g1.style.left = (-160 + 120 * Math.sin(t * 0.35)) + 'px';
+  g1.style.top = (-260 + 140 * Math.cos(t * 0.28)) + 'px';
+  g2.style.left = (-100 - 100 * Math.cos(t * 0.3)) + 'px';
+  g2.style.top = (900 + 120 * Math.sin(t * 0.25)) + 'px';
+  for (const d of dots) {
+    d.el.style.transform = `translate(${d.x + 14 * Math.sin(t * 0.6 + d.p)}px, ${d.y - d.v * t}px) scale(${d.s})`;
+    d.el.style.opacity = d.o * seg(t, 0, 1.2);
+  }
+
+  const frame = document.getElementById('frame');
+  frame.style.opacity = seg(t, 0.1, 1.0);
+  frame.style.transform = `scale(${1.03 - 0.03 * seg(t, 0.1, 1.0)})`;
+
+  const chip = document.getElementById('chip');
+  chip.style.opacity = seg(t, 0.5, 1.3);
+  chip.style.transform = `translateY(${30 * (1 - seg(t, 0.5, 1.3))}px)`;
+
+  // Words appear one by one, right to left as Arabic is read.
+  const start = 1.2, step = Math.min(0.42, 2.6 / spans.length);
+  spans.forEach((s, i) => {
+    const k = seg(t, start + i * step, start + i * step + 0.7);
+    s.style.opacity = k;
+    s.style.transform = `translateY(${36 * (1 - k)}px)`;
+    s.style.filter = `blur(${8 * (1 - k)}px)`;
+  });
+  const textEnd = start + spans.length * step + 0.4;
+
+  const line = document.getElementById('line');
+  line.style.width = (120 * seg(t, textEnd, textEnd + 0.6)) + 'px';
+  const src = document.getElementById('source');
+  src.style.opacity = seg(t, textEnd + 0.3, textEnd + 1.0);
+
+  const brand = document.getElementById('brand');
+  brand.style.opacity = seg(t, textEnd + 1.0, textEnd + 1.8);
+  brand.style.transform = `translateY(${24 * (1 - seg(t, textEnd + 1.0, textEnd + 1.8))}px)`;
+
+  // Gentle fade out in the last half second, so the loop restarts cleanly.
+  document.getElementById('stage').style.opacity = 1 - seg(t, window.DURATION - 0.5, window.DURATION);
+}
+window.render = render;
+</script>
+</body>
+</html>

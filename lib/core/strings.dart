@@ -31,6 +31,7 @@ class S {
   String get typeHadith => _t('حديث', 'Hadith');
   String get typeDua => _t('دعاء', 'Dua');
   String get typeAyah => _t('آية', 'Ayah');
+  String get readExplanation => _t('الرواية كاملة والشرح', 'Full narration & explanation');
   String stoppedAt(String pos) => _t('وقفت عند $pos', 'Stopped at $pos');
   String get moreLink => _t('المزيد ←', 'More →');
   String get savedToFav => _t('حُفظ في المفضلة', 'Saved');

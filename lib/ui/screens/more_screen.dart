@@ -6,7 +6,7 @@ import '../../core/theme.dart';
 import '../../state/providers.dart';
 import '../widgets/common.dart';
 import 'favorites_screen.dart';
-import 'hadith_screen.dart';
+import 'wamda_screen.dart';
 import 'notifications_screen.dart';
 
 class MoreScreen extends ConsumerWidget {
@@ -16,7 +16,7 @@ class MoreScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final s = ref.watch(stringsProvider);
     final settings = ref.watch(settingsProvider);
-    final hadith = ref.watch(hadithOfDayProvider).valueOrNull;
+    final wamda = ref.watch(wamdaOfDayProvider);
 
     String sizeLabel(double v) => v < 1 ? s.fontSmall : (v > 1 ? s.fontLarge : s.fontMedium);
 
@@ -40,8 +40,8 @@ class MoreScreen extends ConsumerWidget {
               child: _Shortcut(
                 icon: Icons.format_quote_rounded,
                 iconColor: Colors.white,
-                label: s.hadithOfDay,
-                onTap: hadith == null ? null : () => Navigator.of(context).push(HadithScreen.route(hadith)),
+                label: s.wamdat,
+                onTap: () => Navigator.of(context).push(WamdaScreen.route(wamda)),
               ),
             ),
           ],
@@ -187,11 +187,11 @@ class InfoScreen extends StatelessWidget {
               'https://mp3quran.net'
             ),
             (
-              'Hadith API (fawazahmed0)',
+              en ? 'HadeethEnc — Encyclopedia of Translated Prophetic Hadiths' : 'موسوعة الأحاديث النبوية (HadeethEnc)',
               en
-                  ? 'Hadith of the day from Sahih al-Bukhari and Sahih Muslim. Public domain (The Unlicense).'
-                  : 'حديث اليوم من صحيح البخاري وصحيح مسلم. النص في الملكية العامة (The Unlicense).',
-              'https://github.com/fawazahmed0/hadith-api'
+                  ? 'Every hadith in the app is taken from the HadeethEnc API and only those graded sahih and agreed upon (narrated by both al-Bukhari and Muslim) are shown, quoted verbatim. Each one links to its page with the full narration and explanation.'
+                  : 'كل الأحاديث في التطبيق مأخوذة من واجهة موسوعة الأحاديث النبوية، ولا نعرض إلا الصحيح المتفق عليه (رواه البخاري ومسلم)، منقولًا كما هو. ولكل حديث رابط لصفحته فيها الرواية كاملة وشرحها.',
+              'https://hadeethenc.com'
             ),
             (
               'Tanzil Quran Text',

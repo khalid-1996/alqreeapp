@@ -123,9 +123,13 @@ class Wamda {
   final String text;
   final String source;
 
-  const Wamda({required this.type, required this.index, required this.text, required this.source});
+  /// Page on HadeethEnc with the full narration and its explanation (hadiths only).
+  final String? url;
 
-  String get key => 'wamda:${type.name}:$index';
+  const Wamda({required this.type, required this.index, required this.text, required this.source, this.url});
+
+  /// Stable across content updates: based on the text, not the position in the list.
+  String get key => 'wamda:${type.name}:${_fnv1a(text)}';
 
   FavoriteType get favoriteType => switch (type) {
         WamdaType.hadith => FavoriteType.hadith,
@@ -133,13 +137,14 @@ class Wamda {
         WamdaType.ayah => FavoriteType.ayah,
       };
 
-  Map<String, dynamic> toJson() => {'type': type.name, 'index': index, 'text': text, 'source': source};
+  Map<String, dynamic> toJson() => {'type': type.name, 'index': index, 'text': text, 'source': source, if (url != null) 'url': url};
 
   factory Wamda.fromJson(Map<String, dynamic> j) => Wamda(
         type: WamdaType.values.firstWhere((t) => t.name == j['type'], orElse: () => WamdaType.dua),
         index: _int(j['index']),
         text: (j['text'] ?? '').toString(),
         source: (j['source'] ?? '').toString(),
+        url: j['url'] as String?,
       );
 }
 
@@ -199,6 +204,16 @@ Map<String, dynamic> _decodeMap(String? s) {
   } catch (_) {
     return const {};
   }
+}
+
+/// FNV-1a (32-bit): a fixed hash, unlike String.hashCode, so saved keys survive app updates.
+String _fnv1a(String s) {
+  var h = 0x811c9dc5;
+  for (final c in s.codeUnits) {
+    h ^= c;
+    h = (h * 0x01000193) & 0xffffffff;
+  }
+  return h.toRadixString(16);
 }
 
 int _int(Object? v) => v is int ? v : int.tryParse('$v') ?? 0;
