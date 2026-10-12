@@ -21,4 +21,4 @@ $t = token_request([
     'redirect_uri' => cfg()['redirect_uri'],
 ]);
 log_line(['connected' => $t['open_id'], 'scope' => $t['scope']]);
-out(200, ['ok' => true, 'message' => 'تم ربط حساب تيك توك. النشر اليومي جاهز.', 'scope' => $t['scope']]);
+header('Location: studio.php?' . http_build_query(['key' => cfg()['secret']]));
