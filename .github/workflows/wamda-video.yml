@@ -1,0 +1,79 @@
+name: Daily ومضة video
+
+# Renders the day's ومضة video (same content and formula as the app) and publishes it as a
+# release asset, so the TikTok poster on the home server only downloads a ready file:
+#   https://github.com/khalid-1996/alqreeapp/releases/download/wamda-videos/wamda-YYYY-MM-DD.mp4
+#   (also .txt = caption, .json = metadata). Keeps the last 14 days.
+on:
+  schedule:
+    - cron: '7 20 * * *'   # 00:07 Asia/Dubai: renders today and tomorrow
+  workflow_dispatch:
+    inputs:
+      date:
+        description: 'Render one day only (YYYY-MM-DD), replacing it'
+        required: false
+  push:
+    branches: [main]
+    paths: ['server/video/**', '.github/workflows/wamda-video.yml']
+
+permissions:
+  contents: write
+
+concurrency:
+  group: wamda-video
+  cancel-in-progress: false
+
+env:
+  TAG: wamda-videos
+  GH_TOKEN: ${{ github.token }}
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install renderer
+        run: |
+          sudo apt-get update -qq && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq ffmpeg >/dev/null
+          pip install -q playwright==1.47.0
+          python -m playwright install --with-deps chromium >/dev/null
+
+      - name: Release for the videos
+        run: |
+          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --title "ومضات اليوم — فيديوهات" \
+            --notes "فيديو ومضة كل يوم لحساب تيك توك. يتجدد تلقائيًا، ويُحتفظ بآخر 14 يومًا." --latest=false
+
+      - name: Render and upload
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -n "${{ inputs.date }}" ]; then
+            days="${{ inputs.date }}"; replace=1
+          else
+            days="$(TZ=Asia/Dubai date +%F) $(TZ=Asia/Dubai date -d tomorrow +%F)"; replace=0
+          fi
+          existing=$(gh release view "$TAG" --json assets -q '.assets[].name')
+          mkdir -p out
+          for d in $days; do
+            if [ "$replace" = 0 ] && grep -qx "wamda-$d.mp4" <<<"$existing"; then
+              echo "$d already published"; continue
+            fi
+            python server/video/render.py --date "$d" --out "out/wamda-$d.mp4" | tail -n 1 > "out/wamda-$d.json"
+            gh release upload "$TAG" "out/wamda-$d.mp4" "out/wamda-$d.txt" "out/wamda-$d.json" --clobber
+            echo "::notice title=published $d::$(head -c 250 out/wamda-$d.json)"
+          done
+
+      - name: Keep the last 14 days
+        shell: bash
+        run: |
+          cutoff=$(TZ=Asia/Dubai date -d '14 days ago' +%F)
+          gh release view "$TAG" --json assets -q '.assets[].name' | while read -r name; do
+            d=$(sed -nE 's/^wamda-([0-9]{4}-[0-9]{2}-[0-9]{2})\..*$/\1/p' <<<"$name")
+            if [ -n "$d" ] && [[ "$d" < "$cutoff" ]]; then gh release delete-asset "$TAG" "$name" -y; fi
+          done

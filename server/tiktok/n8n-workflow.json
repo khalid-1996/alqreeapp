@@ -1,0 +1,35 @@
+{
+  "name": "القارئ — نشر ومضة اليوم على تيك توك",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": { "interval": [ { "field": "days", "triggerAtHour": 7, "triggerAtMinute": 0 } ] }
+      },
+      "id": "a1f0c3d2-0001-4a7e-9a10-000000000001",
+      "name": "كل يوم 7 الصبح",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "url": "https://khalid96.net/tiktok/post.php",
+        "sendQuery": true,
+        "queryParameters": { "parameters": [ { "name": "key", "value": "PUT_THE_SECRET_FROM_CONFIG_PHP" } ] },
+        "options": { "timeout": 300000 }
+      },
+      "id": "a1f0c3d2-0002-4a7e-9a10-000000000002",
+      "name": "انشر على تيك توك",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [260, 0],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    }
+  ],
+  "connections": {
+    "كل يوم 7 الصبح": { "main": [ [ { "node": "انشر على تيك توك", "type": "main", "index": 0 } ] ] }
+  },
+  "settings": { "executionOrder": "v1", "timezone": "Asia/Dubai" }
+}
