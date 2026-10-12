@@ -108,7 +108,7 @@ function api(string $path, array $payload): array
     [$status, $body] = http('POST', cfg()['api'] . $path, [
         'Authorization: Bearer ' . access_token(),
         'Content-Type: application/json; charset=UTF-8',
-    ], json_encode($payload, JSON_UNESCAPED_UNICODE));
+    ], json_encode($payload ?: new stdClass(), JSON_UNESCAPED_UNICODE));  // {} not []
     $j = json_decode($body, true) ?: [];
     if ($status !== 200 || ($j['error']['code'] ?? '') !== 'ok') {
         fail(502, "tiktok $path: " . ($j['error']['code'] ?? $status) . ' ' . ($j['error']['message'] ?? ''), ['response' => $j ?: $body]);
