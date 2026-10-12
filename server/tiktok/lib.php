@@ -10,7 +10,9 @@ function cfg(): array
     if ($c === null) {
         $file = __DIR__ . '/config.php';
         if (!is_file($file)) {
-            fail(500, 'config.php is missing: copy config.example.php to config.php and fill it in');
+            // Not fail(): it logs, and logging needs the config.
+            out(500, ['ok' => false, 'error' => 'config.php is missing: copy config.example.php to config.php (same folder) and fill it in']);
+            exit;
         }
         $c = require $file;
         $c['api'] = $c['api'] ?? 'https://open.tiktokapis.com';  // overridable for tests
