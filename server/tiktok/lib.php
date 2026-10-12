@@ -60,8 +60,14 @@ function read_json(string $name): ?array
 function write_json(string $name, array $value): void
 {
     $f = data_file($name);
-    file_put_contents($f . '.tmp', json_encode($value, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
-    rename($f . '.tmp', $f);
+    $ok = @file_put_contents($f . '.tmp', json_encode($value, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT)) !== false
+        && @rename($f . '.tmp', $f);
+    if (!$ok) {
+        $dir = cfg()['data_dir'];
+        $who = function_exists('posix_geteuid') ? (posix_getpwuid(posix_geteuid())['name'] ?? posix_geteuid()) : get_current_user();
+        out(500, ['ok' => false, 'error' => "PHP (user: $who) cannot write to $dir. On the server run: chown -R $who $dir && chmod 700 $dir"]);
+        exit;
+    }
     @chmod($f, 0600);
 }
 
