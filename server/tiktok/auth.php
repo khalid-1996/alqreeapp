@@ -12,4 +12,5 @@ header('Location: ' . TIKTOK_AUTH_URL . '?' . http_build_query([
     'response_type' => 'code',
     'redirect_uri'  => $c['redirect_uri'],
     'state'         => $state,
+    'disable_auto_auth' => 1,  // always show TikTok's screen, so you can pick or switch the account
 ]));
