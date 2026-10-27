@@ -77,6 +77,22 @@ def mix_rank(key):
     return h ^ (h >> 16)
 
 
+CAPTION_FOOTER = (
+    'ننقل النصوص كما هي، ونذكر مصدر كل ومضة.\n\n'
+    '📱 تطبيق القارئ قريبًا على جميع منصات الجوال: تلاوات أشهر القراء، وإذاعات القرآن، والأذكار، وومضة كل يوم.\n\n'
+    'تابعنا ليصلك التذكير كل يوم 🌿\n'
+    '#ومضات_اليوم #القارئ #قرآن #حديث #دعاء'
+)
+
+
+def caption_for(item):
+    """TikTok caption: the ومضة and its source, the hadith explanation link if any, then the fixed footer."""
+    head = f"{item['text']}\n{item['source']}"
+    if item.get('url'):
+        head += f"\nالشرح: {item['url']}"
+    return f"{head}\n\n{CAPTION_FOOTER}"
+
+
 def font_size(text):
     n = len(text)
     return 96 if n <= 50 else 84 if n <= 90 else 72 if n <= 140 else 60 if n <= 200 else 52 if n <= 250 else 46
@@ -124,8 +140,7 @@ def main():
     kind, item = wamda_for(load_content(a.content), day)
     render(kind, item, a.out)
     # Caption for the post, with the source link when there is one.
-    caption = f"{item['text']}\n{item['source']}\n\n#ومضات_اليوم #القارئ"
-    Path(a.out).with_suffix('.txt').write_text(caption + ('\n' + item['url'] if item.get('url') else ''))
+    Path(a.out).with_suffix('.txt').write_text(caption_for(item))
     print(json.dumps({'date': str(day), 'type': kind, **item, 'video': a.out}, ensure_ascii=False))
 
 
