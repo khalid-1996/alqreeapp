@@ -53,15 +53,17 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          # Today is always rendered again, so it follows any content update since it was
+          # pre-rendered as "tomorrow". Tomorrow is rendered only if it is missing.
           if [ -n "${{ inputs.date }}" ]; then
-            days="${{ inputs.date }}"; replace=1
+            days="${{ inputs.date }}"; always="${{ inputs.date }}"
           else
-            days="$(TZ=Asia/Dubai date +%F) $(TZ=Asia/Dubai date -d tomorrow +%F)"; replace=0
+            always="$(TZ=Asia/Dubai date +%F)"; days="$always $(TZ=Asia/Dubai date -d tomorrow +%F)"
           fi
           existing=$(gh release view "$TAG" --json assets -q '.assets[].name')
           mkdir -p out
           for d in $days; do
-            if [ "$replace" = 0 ] && grep -qx "wamda-$d.mp4" <<<"$existing"; then
+            if [ "$d" != "$always" ] && grep -qx "wamda-$d.mp4" <<<"$existing"; then
               echo "$d already published"; continue
             fi
             python server/video/render.py --date "$d" --out "out/wamda-$d.mp4" | tail -n 1 > "out/wamda-$d.json"
