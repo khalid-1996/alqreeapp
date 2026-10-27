@@ -1,0 +1,194 @@
+{
+  "name": "القارئ — ومضة اليوم على تيليجرام",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "triggerAtHour": 7,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      },
+      "id": "b1",
+      "name": "كل يوم 7 الصبح",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Today's date in Dubai (the videos are named by it)\nreturn [{ json: { date: new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Dubai' }) } }];"
+      },
+      "id": "b2",
+      "name": "اليوم",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://github.com/khalid-1996/alqreeapp/releases/download/wamda-videos/wamda-{{ $('اليوم').item.json.date }}.txt",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text",
+              "outputPropertyName": "caption"
+            }
+          }
+        }
+      },
+      "id": "b3",
+      "name": "الكابشن",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        0
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "url": "=https://github.com/khalid-1996/alqreeapp/releases/download/wamda-videos/wamda-{{ $('اليوم').item.json.date }}.mp4",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "id": "b4",
+      "name": "الفيديو",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        0
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "operation": "sendVideo",
+        "chatId": "PUT_YOUR_CHAT_ID",
+        "binaryData": true,
+        "additionalFields": {
+          "caption": "=ومضة اليوم · {{ $('اليوم').item.json.date }}"
+        }
+      },
+      "id": "b5",
+      "name": "أرسل الفيديو",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        880,
+        0
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "PUT_YOUR_CHAT_ID",
+        "text": "={{ $('الكابشن').item.json.caption }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "b6",
+      "name": "أرسل الكابشن",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1100,
+        0
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "",
+          "name": "Telegram account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "كل يوم 7 الصبح": {
+      "main": [
+        [
+          {
+            "node": "اليوم",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "اليوم": {
+      "main": [
+        [
+          {
+            "node": "الكابشن",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "الكابشن": {
+      "main": [
+        [
+          {
+            "node": "الفيديو",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "الفيديو": {
+      "main": [
+        [
+          {
+            "node": "أرسل الفيديو",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "أرسل الفيديو": {
+      "main": [
+        [
+          {
+            "node": "أرسل الكابشن",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Dubai"
+  }
+}

@@ -27,6 +27,3 @@
 build/
 server/video/__pycache__/
 server/video/fonts/
-server/tiktok/config.php
-server/tiktok/data/*
-!server/tiktok/data/.htaccess
