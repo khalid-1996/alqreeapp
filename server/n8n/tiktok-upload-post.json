@@ -1,0 +1,278 @@
+{
+  "name": "القارئ — نشر ومضة اليوم على تيك توك (Upload-Post)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "triggerAtHour": 7,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      },
+      "id": "c1",
+      "name": "كل يوم 7 الصبح",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Today's date in Dubai (the videos are named by it)\nreturn [{ json: { date: new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Dubai' }) } }];"
+      },
+      "id": "c2",
+      "name": "اليوم",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://github.com/khalid-1996/alqreeapp/releases/download/wamda-videos/wamda-{{ $('اليوم').item.json.date }}.txt",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text",
+              "outputPropertyName": "caption"
+            }
+          }
+        }
+      },
+      "id": "c3",
+      "name": "الكابشن",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        0
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "url": "=https://github.com/khalid-1996/alqreeapp/releases/download/wamda-videos/wamda-{{ $('اليوم').item.json.date }}.mp4",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "id": "c4",
+      "name": "الفيديو",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        0
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.upload-post.com/api/upload",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Apikey PUT_YOUR_UPLOAD_POST_API_KEY"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "video",
+              "inputDataFieldName": "data"
+            },
+            {
+              "parameterType": "formData",
+              "name": "user",
+              "value": "PUT_YOUR_UPLOAD_POST_PROFILE"
+            },
+            {
+              "parameterType": "formData",
+              "name": "platform[]",
+              "value": "tiktok"
+            },
+            {
+              "parameterType": "formData",
+              "name": "title",
+              "value": "={{ $('الكابشن').item.json.caption }}"
+            },
+            {
+              "parameterType": "formData",
+              "name": "privacy_level",
+              "value": "PUBLIC_TO_EVERYONE"
+            },
+            {
+              "parameterType": "formData",
+              "name": "cover_timestamp",
+              "value": "4600"
+            },
+            {
+              "parameterType": "formData",
+              "name": "disable_comment",
+              "value": "false"
+            },
+            {
+              "parameterType": "formData",
+              "name": "disable_duet",
+              "value": "false"
+            },
+            {
+              "parameterType": "formData",
+              "name": "disable_stitch",
+              "value": "false"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 300000
+        }
+      },
+      "id": "c5",
+      "name": "انشر على تيك توك",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        0
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "chatId": "PUT_YOUR_CHAT_ID",
+        "text": "=✅ نُشرت ومضة اليوم على تيك توك · {{ $('اليوم').item.json.date }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "c6",
+      "name": "تم النشر",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1120,
+        -80
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "PUT_YOUR_CHAT_ID",
+        "text": "=⚠️ ما انشرت ومضة اليوم ({{ $('اليوم').item.json.date }})\n{{ JSON.stringify($json).slice(0, 800) }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "c7",
+      "name": "فشل النشر",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1120,
+        100
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "",
+          "name": "Telegram account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "كل يوم 7 الصبح": {
+      "main": [
+        [
+          {
+            "node": "اليوم",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "اليوم": {
+      "main": [
+        [
+          {
+            "node": "الكابشن",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "الكابشن": {
+      "main": [
+        [
+          {
+            "node": "الفيديو",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "الفيديو": {
+      "main": [
+        [
+          {
+            "node": "انشر على تيك توك",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "انشر على تيك توك": {
+      "main": [
+        [
+          {
+            "node": "تم النشر",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "فشل النشر",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Dubai"
+  }
+}
