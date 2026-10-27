@@ -31,6 +31,13 @@ DURATION = 8.0
 TYPE_LABEL = {'hadith': 'حديث', 'dua': 'دعاء', 'ayah': 'آية'}
 
 
+def type_label(kind, item):
+    """A dua from the Quran is labeled آية, like every Quran text."""
+    if item.get('text', '').startswith('﴿') or item.get('source', '').startswith('سورة'):
+        return TYPE_LABEL['ayah']
+    return TYPE_LABEL[kind]
+
+
 def get_fonts():
     FONTS.mkdir(exist_ok=True)
     for pkg in ('amiri', 'tajawal'):
@@ -80,7 +87,7 @@ def render(kind, item, out):
 
     html = (HERE / 'template.html').read_text()
     html = (html.replace('TEXT', item['text']).replace('SOURCE', item['source'])
-            .replace('TYPE', TYPE_LABEL[kind]).replace('LOGO', LOGO.as_uri())
+            .replace('TYPE', type_label(kind, item)).replace('LOGO', LOGO.as_uri())
             .replace('FONTSIZE', str(font_size(item['text']))).replace('FONTS', FONTS.as_uri()))
     with tempfile.TemporaryDirectory() as tmp:
         tmp = Path(tmp)
