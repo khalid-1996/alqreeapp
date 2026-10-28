@@ -17,6 +17,9 @@ on:
     branches: [main]
     paths: ['.github/workflows/voice-test.yml']
 
+permissions:
+  contents: write
+
 jobs:
   voice:
     runs-on: ubuntu-latest
@@ -67,7 +70,9 @@ jobs:
           python server/video/render.py --date "$DAY" --out silent.mp4 --duration "$d"
           ffmpeg -v error -y -i silent.mp4 -i voice.m4a -c:v copy -c:a aac -b:a 160k -shortest -movflags +faststart "out/wamda-$DAY-voice-$VOICE.mp4"
           ls -la out
-      - uses: actions/upload-artifact@v4
-        with:
-          name: voice-test
-          path: out/
+      - name: Publish to the voice-test release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view voice-test >/dev/null 2>&1 || gh release create voice-test --title "Voice test" --notes "Voice-over experiments." --latest=false --prerelease
+          gh release upload voice-test out/* --clobber
