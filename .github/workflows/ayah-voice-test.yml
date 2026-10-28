@@ -48,10 +48,16 @@ jobs:
           want = ['سورة البقرة · 153', 'سورة الرعد · 28', 'سورة الشرح · 5–6']
           items = [x for k in ('ayah', 'dua') for x in c[k] if x['source'] in want]
           rec = os.environ['RECITER']
+          import traceback
+          print('::notice title=items::' + ', '.join(x['source'] for x in items))
           for n, item in enumerate(items):
+            try:
               audio = f'a{n}.m4a'
-              subprocess.run([sys.executable, 'server/video/ayah_audio.py', '--source', item['source'],
-                              '--text', item['text'], '--reciter', rec, '--out', audio], check=True)
+              r = subprocess.run([sys.executable, 'server/video/ayah_audio.py', '--source', item['source'],
+                                  '--text', item['text'], '--reciter', rec, '--out', audio], capture_output=True, text=True)
+              print('::notice title=audio ' + item['source'] + '::' + (r.stderr.strip().replace('\n', ' | ')[-900:] or 'ok'))
+              if r.returncode != 0:
+                  continue
               sec = float(subprocess.check_output(['ffprobe', '-v', 'error', '-show_entries', 'format=duration',
                                                    '-of', 'csv=p=0', audio]).decode())
               render.render('ayah', item, f'v{n}.mp4', max(8.0, round(sec + 0.3, 1)))
@@ -60,6 +66,8 @@ jobs:
                               '-c:a', 'aac', '-b:a', '160k', '-shortest', '-movflags', '+faststart',
                               f'out/ayah-{name}-reciter{rec}.mp4'], check=True)
               print('::notice title=rendered::' + item['source'] + f' {sec:.1f}s')
+            except Exception:
+              print('::error title=' + item['source'] + '::' + traceback.format_exc().replace('\n', ' | ')[-900:])
           PY
           ls -la out
       - name: Publish to the voice-test release
