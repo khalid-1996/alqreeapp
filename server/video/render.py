@@ -98,7 +98,7 @@ def font_size(text):
     return 96 if n <= 50 else 84 if n <= 90 else 72 if n <= 140 else 60 if n <= 200 else 52 if n <= 250 else 46
 
 
-def render(kind, item, out):
+def render(kind, item, out, duration=DURATION):
     from playwright.sync_api import sync_playwright
 
     html = (HERE / 'template.html').read_text()
@@ -114,8 +114,8 @@ def render(kind, item, out):
             page = browser.new_page(viewport={'width': 1080, 'height': 1920})
             page.goto(page_file.as_uri())
             page.evaluate('document.fonts.ready')
-            page.evaluate(f'window.DURATION = {DURATION}')
-            for i in range(int(FPS * DURATION)):
+            page.evaluate(f'window.DURATION = {duration}')
+            for i in range(int(FPS * duration)):
                 page.evaluate(f'render({i / FPS})')
                 page.screenshot(path=str(tmp / f'{i:04d}.png'))
             browser.close()
@@ -133,12 +133,13 @@ def main():
     ap.add_argument('--date', help='YYYY-MM-DD, default today')
     ap.add_argument('--content', default=str(REPO / 'assets' / 'data' / 'wamdat.json'))
     ap.add_argument('--get-fonts', action='store_true')
+    ap.add_argument('--duration', type=float, default=DURATION, help='seconds (longer for a voice-over)')
     a = ap.parse_args()
     if a.get_fonts or not FONTS.exists():
         get_fonts()
     day = dt.date.fromisoformat(a.date) if a.date else dt.date.today()
     kind, item = wamda_for(load_content(a.content), day)
-    render(kind, item, a.out)
+    render(kind, item, a.out, a.duration)
     # Caption for the post, with the source link when there is one.
     Path(a.out).with_suffix('.txt').write_text(caption_for(item))
     print(json.dumps({'date': str(day), 'type': kind, **item, 'video': a.out}, ensure_ascii=False))
