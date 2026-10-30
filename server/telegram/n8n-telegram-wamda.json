@@ -24,7 +24,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Today's date in Dubai (the videos are named by it)\nreturn [{ json: { date: new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Dubai' }) } }];"
+        "jsCode": "// Today's date in Dubai (UTC+4, no daylight saving), as YYYY-MM-DD.\n// Plain arithmetic: toLocaleDateString depends on the server's ICU and can return 10/30/2026.\nconst date = new Date(Date.now() + 4 * 3600 * 1000).toISOString().slice(0, 10);\nreturn [{ json: { date } }];"
       },
       "id": "b2",
       "name": "اليوم",
